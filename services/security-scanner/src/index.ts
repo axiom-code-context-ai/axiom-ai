@@ -1,0 +1,72 @@
+#!/usr/bin/env node
+
+import 'dotenv/config'
+import { createServer } from './server.js'
+import { logger } from './utils/logger.js'
+import { validateEnvironment } from './config/env.js'
+import { initializeSecurityEngine } from './security/securityEngine.js'
+import { initializeScheduler } from './scheduler/index.js'
+import { gracefulShutdown } from './utils/shutdown.js'
+
+async function main() {
+  try {
+    // Validate environment variables
+    const env = validateEnvironment()
+    logger.info('Environment validated successfully')
+
+    // Initialize security engine
+    const securityEngine = await initializeSecurityEngine()
+    logger.info('Security engine initialized')
+
+    // Initialize scheduler for periodic scans
+    const scheduler = await initializeScheduler(securityEngine)
+    logger.info('Security scan scheduler initialized')
+
+    // Create and start the server
+    const server = await createServer({ 
+      securityEngine,
+      scheduler 
+    })
+    
+    const address = await server.listen({
+      port: env.PORT,
+      host: env.HOST
+    })
+
+    logger.info(`Security Scanner server running at ${address}`)
+
+    // Setup graceful shutdown
+    const shutdown = gracefulShutdown([
+      {
+        name: 'server',
+        shutdown: () => server.close()
+      },
+      {
+        name: 'scheduler',
+        shutdown: () => scheduler.stop()
+      },
+      {
+        name: 'security-engine',
+        shutdown: () => securityEngine.close()
+      }
+    ])
+
+    process.on('SIGINT', shutdown)
+    process.on('SIGTERM', shutdown)
+    process.on('uncaughtException', (error) => {
+      logger.error('Uncaught exception:', error)
+      shutdown()
+    })
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.error('Unhandled rejection at:', promise, 'reason:', reason)
+      shutdown()
+    })
+
+  } catch (error) {
+    logger.error('Failed to start security scanner:', error)
+    process.exit(1)
+  }
+}
+
+// Start the application
+main()
