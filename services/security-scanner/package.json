@@ -36,9 +36,8 @@
     "minimatch": "^9.0.3",
     "eslint": "^8.56.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
-    "bandit": "^1.0.0",
-    "retire": "^4.2.4",
-    "safety-cli": "^1.0.0"
+    "audit-ci": "^6.6.1",
+    "npm-audit-report": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
