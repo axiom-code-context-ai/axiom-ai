@@ -160,7 +160,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     ports:
-      - "18000:18000"
+      - "18001:18000"
     depends_on:
       postgres:
         condition: service_healthy
