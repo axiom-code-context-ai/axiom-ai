@@ -124,6 +124,8 @@ services:
       REDIS_PORT: 6379
       GITHUB_TOKEN: ${GITHUB_TOKEN}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-your-encryption-key-here}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     ports:
       - "5001:4001"
     depends_on:
