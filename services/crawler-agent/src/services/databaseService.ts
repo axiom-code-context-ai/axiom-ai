@@ -53,24 +53,23 @@ export class DatabaseService {
 
       // 2. Create or update repository
       const repoResult = await client.query(
-        `INSERT INTO core.repositories (workspace_id, url, branch, auth_type, auth_config, metadata)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO core.repositories (workspace_id, name, url, branch, auth_type, auth_config, file_count, primary_language)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (workspace_id, url) 
          DO UPDATE SET 
-           metadata = $6,
+           file_count = $7,
+           primary_language = $8,
            updated_at = NOW()
          RETURNING id`,
         [
           workspaceId,
-          result.repository,
-          'main',
-          'none',
-          {},
-          {
-            lastAnalyzed: result.timestamp,
-            filesProcessed: result.filesProcessed,
-            languages: result.codeStats.languages
-          }
+          'Analyzed Repository', // name
+          result.repository, // url
+          'main', // branch
+          'public', // auth_type
+          {}, // auth_config
+          result.filesProcessed, // file_count
+          Object.keys(result.codeStats.languages)[0] || 'Unknown' // primary_language
         ]
       )
       const repositoryId = repoResult.rows[0].id
