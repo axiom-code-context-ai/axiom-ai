@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static('public'));
 
-// API endpoint for analysis
+// API endpoint for analysis - calls REAL crawler-agent
 app.post('/api/analyze', async (req, res) => {
     try {
         const { gitUrl } = req.body;
@@ -16,29 +16,44 @@ app.post('/api/analyze', async (req, res) => {
             return res.status(400).json({ error: 'Git URL is required' });
         }
 
-        console.log('Analyzing repository:', gitUrl);
+        console.log('Triggering REAL repository analysis:', gitUrl);
 
-        // Mock analysis - simulates the real workflow:
-        // 1. Clone repository
-        // 2. Run TreeSitter AST analysis
-        // 3. Generate RepoMix-style context
-        // 4. Store in database
+        // Call the crawler-agent service for REAL analysis
+        const crawlerUrl = process.env.CRAWLER_AGENT_URL || 'http://crawler-agent:4001';
         
-        // Simulate analysis delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        const response = await fetch(`${crawlerUrl}/analyze`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ gitUrl })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Crawler agent failed: ${response.statusText}`);
+        }
+
+        const crawlerResult = await response.json();
+        
+        console.log('Analysis complete:', crawlerResult.filesProcessed, 'files');
 
         const result = {
             repository: gitUrl,
-            filesAnalyzed: Math.floor(Math.random() * 100) + 50,
-            contextGenerated: true,
-            status: 'success',
-            timestamp: new Date().toISOString()
+            filesAnalyzed: crawlerResult.filesProcessed || 0,
+            contextGenerated: crawlerResult.contextGenerated || false,
+            patterns: crawlerResult.patterns || [],
+            codeStats: crawlerResult.codeStats || {},
+            status: crawlerResult.status,
+            timestamp: crawlerResult.timestamp
         };
 
         res.json(result);
     } catch (error) {
         console.error('Analysis error:', error);
-        res.status(500).json({ error: 'Analysis failed' });
+        res.status(500).json({ 
+            error: 'Analysis failed',
+            details: error.message
+        });
     }
 });
 
