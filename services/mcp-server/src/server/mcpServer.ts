@@ -5,21 +5,18 @@ import { env } from '../config/env.js'
 // Import tools
 import { registerSearchCodeTool } from '../tools/searchCode.js'
 import { registerExplainCodeTool } from '../tools/explainCode.js'
-import { registerAnalyzeSecurityTool } from '../tools/analyzeSecurity.js'
 import { registerGenerateContextTool } from '../tools/generateContext.js'
 import { registerSuggestRefactorTool } from '../tools/suggestRefactor.js'
 import { registerFindSimilarTool } from '../tools/findSimilar.js'
 
 // Import prompts
 import { registerCodeAnalysisPrompt } from '../prompts/codeAnalysis.js'
-import { registerSecurityReviewPrompt } from '../prompts/securityReview.js'
 import { registerRefactoringPrompt } from '../prompts/refactoring.js'
 
 // Import services
 import { AuthService } from '../services/authService.js'
 import { ContextService } from '../services/contextService.js'
 import { SearchService } from '../services/searchService.js'
-import { SecurityService } from '../services/securityService.js'
 
 const logger = createModuleLogger('mcp-server')
 
@@ -48,11 +45,6 @@ Axiom AI MCP Server provides intelligent codebase analysis and context injection
 - Find similar code patterns across the codebase
 - Analyze code quality and suggest improvements
 
-### 🛡️ Security Analysis
-- OWASP Top 10 vulnerability detection
-- CVE and dependency scanning
-- Compliance checking (SOC2, GDPR, HIPAA)
-- Custom security rule evaluation
 
 ### ⚡ Intelligent Refactoring
 - Suggest code improvements and optimizations
@@ -71,8 +63,7 @@ Axiom AI MCP Server provides intelligent codebase analysis and context injection
 1. **Always specify workspace context** when making requests
 2. **Use specific queries** for better search results
 3. **Combine tools** for comprehensive analysis
-4. **Review security suggestions** before implementation
-5. **Test refactored code** thoroughly
+4. **Test refactored code** thoroughly
 
 ## Authentication:
 Requires valid workspace ID and API key for access to private repositories and advanced features.
@@ -104,7 +95,6 @@ export async function createMcpServer(options: McpServerOptions = {}): Promise<M
     const authService = new AuthService()
     const contextService = new ContextService()
     const searchService = new SearchService()
-    const securityService = new SecurityService()
 
     // Validate authentication if provided
     if (options.workspaceId && options.apiKey) {
@@ -122,13 +112,11 @@ export async function createMcpServer(options: McpServerOptions = {}): Promise<M
       authService,
       contextService,
       searchService,
-      securityService,
     }
 
     // Register all tools
     await registerSearchCodeTool(server, serverContext)
     await registerExplainCodeTool(server, serverContext)
-    await registerAnalyzeSecurityTool(server, serverContext)
     await registerGenerateContextTool(server, serverContext)
     await registerSuggestRefactorTool(server, serverContext)
     await registerFindSimilarTool(server, serverContext)
@@ -137,7 +125,6 @@ export async function createMcpServer(options: McpServerOptions = {}): Promise<M
 
     // Register all prompts
     await registerCodeAnalysisPrompt(server, serverContext)
-    await registerSecurityReviewPrompt(server, serverContext)
     await registerRefactoringPrompt(server, serverContext)
 
     logger.info('All MCP prompts registered successfully')
@@ -163,5 +150,4 @@ export interface ServerContext {
   authService: AuthService
   contextService: ContextService
   searchService: SearchService
-  securityService: SecurityService
 }

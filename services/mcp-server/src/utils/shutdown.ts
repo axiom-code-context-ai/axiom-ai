@@ -1,39 +1,26 @@
 import { logger } from './logger.js'
 
-interface ShutdownHandler {
+export interface ShutdownHandler {
   name: string
-  shutdown: () => Promise<void>
+  shutdown: () => Promise<void> | void
 }
 
 export function gracefulShutdown(handlers: ShutdownHandler[]) {
-  let isShuttingDown = false
-  
   return async (signal?: string) => {
-    if (isShuttingDown) {
-      logger.warn('Shutdown already in progress, ignoring signal')
-      return
-    }
-    
-    isShuttingDown = true
-    logger.info(`Received ${signal || 'shutdown'} signal, starting graceful shutdown`)
+    logger.info({ signal }, 'Received shutdown signal')
     
     const shutdownPromises = handlers.map(async (handler) => {
       try {
-        logger.debug(`Shutting down ${handler.name}`)
+        logger.info({ handler: handler.name }, 'Shutting down service')
         await handler.shutdown()
-        logger.debug(`Successfully shut down ${handler.name}`)
+        logger.info({ handler: handler.name }, 'Service shutdown complete')
       } catch (error) {
-        logger.error(`Error shutting down ${handler.name}:`, error)
+        logger.error({ handler: handler.name, error }, 'Error during service shutdown')
       }
     })
-    
-    try {
-      await Promise.all(shutdownPromises)
-      logger.info('Graceful shutdown completed')
-      process.exit(0)
-    } catch (error) {
-      logger.error('Error during graceful shutdown:', error)
-      process.exit(1)
-    }
+
+    await Promise.all(shutdownPromises)
+    logger.info('All services shutdown complete')
+    process.exit(0)
   }
 }

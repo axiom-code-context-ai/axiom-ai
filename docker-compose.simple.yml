@@ -140,39 +140,6 @@ services:
     networks:
       - axiom-network
 
-  security-scanner:
-    build:
-      context: ./services/security-scanner
-      dockerfile: Dockerfile
-    container_name: axiom-security-scanner
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://axiom:axiom_secure_password_2024@postgres:5432/axiom
-      REDIS_URL: redis://redis:6379
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: axiom
-      DB_USER: axiom
-      DB_PASSWORD: axiom_secure_password_2024
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    ports:
-      - "6000:6000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./data/repos:/data/repos:ro
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - axiom-network
 
   # MCP Server (for IDE integration)
   mcp-server:

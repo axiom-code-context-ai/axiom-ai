@@ -7,10 +7,10 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4001),
 
   // Database
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.string().url().optional(),
 
   // Redis
-  REDIS_URL: z.string().url(),
+  REDIS_URL: z.string().url().optional(),
 
   // Git Authentication
   GITHUB_TOKEN: z.string().optional(),
@@ -30,10 +30,10 @@ const envSchema = z.object({
   CACHE_STORAGE_PATH: z.string().default('/data/cache'),
 
   // External Services
-  EMBEDDING_API_URL: z.string().url().default('http://localhost:4003'),
+  EMBEDDING_API_URL: z.string().url().optional().default('http://localhost:4003'),
 
-  // Security
-  ENCRYPTION_KEY: z.string().min(32),
+  // Security (optional for simplified version)
+  ENCRYPTION_KEY: z.string().optional(),
 
   // Logging
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
