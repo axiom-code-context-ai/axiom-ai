@@ -1,7 +1,9 @@
 FROM node:20-alpine
 
-WORKDIR /app
+# Install git for repository cloning
+RUN apk add --no-cache git
 
+WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
@@ -16,8 +18,11 @@ COPY . .
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
+# Change ownership of the app directory and create temp directory for repo cloning
+RUN chown -R nodejs:nodejs /app && \
+    mkdir -p /tmp/axiom-repos && \
+    chown -R nodejs:nodejs /tmp/axiom-repos
+
 USER nodejs
 
 # Expose port
