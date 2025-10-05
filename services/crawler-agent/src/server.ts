@@ -1,12 +1,17 @@
 import Fastify from 'fastify'
 import { logger } from './utils/logger.js'
 import { env } from './config/env.js'
+import { RepositoryAnalyzer } from './services/repositoryAnalyzer.js'
+import { DatabaseService } from './services/databaseService.js'
 
 export async function createServer() {
   const server = Fastify({
     logger: logger,
     trustProxy: true,
   })
+
+  const analyzer = new RepositoryAnalyzer()
+  const database = new DatabaseService()
 
   // Health check endpoint
   server.get('/health', async (request, reply) => {
@@ -17,38 +22,40 @@ export async function createServer() {
     }
   })
 
-  // Simple repository analysis endpoint
+  // REAL repository analysis endpoint
   server.post('/analyze', async (request, reply) => {
     try {
       const { gitUrl } = request.body as any
-      logger.info({ gitUrl }, 'Repository analysis request')
       
-      // Mock analysis - in real implementation this would:
-      // 1. Clone the repository
-      // 2. Run TreeSitter AST analysis
-      // 3. Generate RepoMix-style context
-      // 4. Store in database for MCP server access
-      
-      const mockAnalysis = {
-        repository: gitUrl,
-        status: 'analyzed',
-        filesProcessed: Math.floor(Math.random() * 100) + 50,
-        contextGenerated: true,
-        patterns: [
-          { type: 'function', count: 25 },
-          { type: 'class', count: 8 },
-          { type: 'component', count: 12 }
-        ],
-        timestamp: new Date().toISOString()
+      if (!gitUrl) {
+        return reply.status(400).send({ error: 'Git URL is required' })
       }
+      
+      logger.info({ gitUrl }, 'Starting REAL repository analysis')
+      
+      // REAL analysis with Git clone and code parsing
+      const result = await analyzer.analyzeRepository(gitUrl)
+      
+      // Store in database
+      try {
+        await database.storeAnalysisResult(result)
+        logger.info({ repository: result.repository }, 'Analysis stored in database')
+      } catch (dbError) {
+        logger.warn({ dbError }, 'Failed to store in database, continuing...')
+      }
+      
+      logger.info({ 
+        repository: result.repository, 
+        filesProcessed: result.filesProcessed 
+      }, 'Analysis complete')
 
-      // Simulate analysis delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      return mockAnalysis
+      return result
     } catch (error) {
       logger.error(error, 'Analysis error')
-      return reply.status(500).send({ error: 'Analysis failed' })
+      return reply.status(500).send({ 
+        error: 'Analysis failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      })
     }
   })
 
