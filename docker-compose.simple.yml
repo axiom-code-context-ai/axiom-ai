@@ -121,6 +121,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       GITHUB_TOKEN: ${GITHUB_TOKEN}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-your-encryption-key-here}
     ports:
       - "5001:5000"
     depends_on:

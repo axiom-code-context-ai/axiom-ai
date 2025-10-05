@@ -1,148 +1,46 @@
-import Redis from 'ioredis'
 import { createModuleLogger } from '../utils/logger.js'
-import { env } from '../config/env.js'
 
 const logger = createModuleLogger('cache-service')
 
 export class CacheService {
-  private redis: Redis
+  private cache: Map<string, any> = new Map()
 
   constructor() {
-    this.redis = new Redis(env.REDIS_URL, {
-      maxRetriesPerRequest: 3,
-      retryDelayOnFailover: 100,
-      lazyConnect: true,
-    })
-
-    this.redis.on('connect', () => {
-      logger.info('Connected to Redis cache')
-    })
-
-    this.redis.on('error', (error) => {
-      logger.error('Redis cache error:', error)
-    })
+    logger.info('CacheService initialized (in-memory mode)')
   }
 
-  /**
-   * Get value from cache
-   */
   async get<T>(key: string): Promise<T | null> {
-    try {
-      const value = await this.redis.get(key)
-      if (!value) return null
-
-      return JSON.parse(value) as T
-    } catch (error) {
-      logger.error({ key, error }, 'Failed to get from cache')
-      return null
+    const value = this.cache.get(key)
+    if (value) {
+      logger.debug({ key }, 'Cache hit')
+      return value
     }
+    logger.debug({ key }, 'Cache miss')
+    return null
   }
 
-  /**
-   * Set value in cache with TTL
-   */
-  async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
-    try {
-      const serialized = JSON.stringify(value)
-      
-      if (ttlSeconds) {
-        await this.redis.setex(key, ttlSeconds, serialized)
-      } else {
-        await this.redis.set(key, serialized)
-      }
-    } catch (error) {
-      logger.error({ key, error }, 'Failed to set cache')
-      throw error
-    }
+  async set<T>(key: string, value: T, ttl?: number): Promise<void> {
+    this.cache.set(key, value)
+    logger.debug({ key, ttl }, 'Cache set')
   }
 
-  /**
-   * Delete key from cache
-   */
-  async delete(key: string): Promise<void> {
-    try {
-      await this.redis.del(key)
-    } catch (error) {
-      logger.error({ key, error }, 'Failed to delete from cache')
-      throw error
-    }
+  async del(key: string): Promise<void> {
+    this.cache.delete(key)
+    logger.debug({ key }, 'Cache deleted')
   }
 
-  /**
-   * Check if key exists in cache
-   */
-  async exists(key: string): Promise<boolean> {
-    try {
-      const result = await this.redis.exists(key)
-      return result === 1
-    } catch (error) {
-      logger.error({ key, error }, 'Failed to check cache existence')
-      return false
-    }
+  async flush(): Promise<void> {
+    this.cache.clear()
+    logger.info('Cache flushed')
   }
 
-  /**
-   * Clear all cache entries matching pattern
-   */
-  async clear(pattern: string = '*'): Promise<number> {
-    try {
-      const keys = await this.redis.keys(pattern)
-      if (keys.length === 0) return 0
-
-      await this.redis.del(...keys)
-      return keys.length
-    } catch (error) {
-      logger.error({ pattern, error }, 'Failed to clear cache')
-      throw error
-    }
-  }
-
-  /**
-   * Get cache statistics
-   */
-  async getStats() {
-    try {
-      const info = await this.redis.info('memory')
-      const keyspace = await this.redis.info('keyspace')
-      
-      return {
-        memory: info,
-        keyspace,
-        connected: this.redis.status === 'ready',
-      }
-    } catch (error) {
-      logger.error({ error }, 'Failed to get cache stats')
-      throw error
-    }
-  }
-
-  /**
-   * Disconnect from Redis
-   */
   async disconnect(): Promise<void> {
-    try {
-      await this.redis.quit()
-      logger.info('Disconnected from Redis cache')
-    } catch (error) {
-      logger.error('Error disconnecting from Redis:', error)
-    }
+    logger.info('Disconnecting cache service')
+    this.cache.clear()
   }
 }
 
-/**
- * Initialize cache service
- */
 export async function initializeCache(): Promise<CacheService> {
-  const cache = new CacheService()
-  
-  // Test connection
-  try {
-    await cache.redis.ping()
-    logger.info('Cache service initialized successfully')
-  } catch (error) {
-    logger.error('Failed to initialize cache service:', error)
-    throw error
-  }
-
-  return cache
+  logger.info('Initializing cache service (in-memory mode)')
+  return new CacheService()
 }

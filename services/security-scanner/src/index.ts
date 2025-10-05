@@ -4,8 +4,6 @@ import 'dotenv/config'
 import { createServer } from './server.js'
 import { logger } from './utils/logger.js'
 import { validateEnvironment } from './config/env.js'
-import { initializeSecurityEngine } from './security/securityEngine.js'
-import { initializeScheduler } from './scheduler/index.js'
 import { gracefulShutdown } from './utils/shutdown.js'
 
 async function main() {
@@ -14,19 +12,8 @@ async function main() {
     const env = validateEnvironment()
     logger.info('Environment validated successfully')
 
-    // Initialize security engine
-    const securityEngine = await initializeSecurityEngine()
-    logger.info('Security engine initialized')
-
-    // Initialize scheduler for periodic scans
-    const scheduler = await initializeScheduler(securityEngine)
-    logger.info('Security scan scheduler initialized')
-
     // Create and start the server
-    const server = await createServer({ 
-      securityEngine,
-      scheduler 
-    })
+    const server = await createServer()
     
     const address = await server.listen({
       port: env.PORT,
@@ -40,14 +27,6 @@ async function main() {
       {
         name: 'server',
         shutdown: () => server.close()
-      },
-      {
-        name: 'scheduler',
-        shutdown: () => scheduler.stop()
-      },
-      {
-        name: 'security-engine',
-        shutdown: () => securityEngine.close()
       }
     ])
 
