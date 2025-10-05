@@ -66,7 +66,14 @@ export class ExtractionOrchestrator {
 
     try {
       // Step 1: Update repository status
-      await this.updateRepositoryStatus(repositoryId, 'analyzing');
+      logger.info('Updating repository status...');
+      try {
+        await this.updateRepositoryStatus(repositoryId, 'analyzing');
+        logger.info('Repository status updated successfully');
+      } catch (error) {
+        logger.error('Failed to update repository status:', error);
+        throw new Error(`Failed to update repository status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
 
       // Step 2: Clone repository
       repoPath = await this.cloneRepository(gitUrl, repositoryId);

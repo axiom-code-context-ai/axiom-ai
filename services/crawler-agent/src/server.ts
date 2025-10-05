@@ -5,6 +5,7 @@ import { env } from './config/env.js'
 import { RepositoryAnalyzer } from './services/repositoryAnalyzer.js'
 import { DatabaseService } from './services/databaseService.js'
 import { registerExtractionRoutes } from './routes/extraction.js'
+import { registerTestLLMRoutes } from './routes/test-llm.js'
 
 export async function createServer() {
   const server = Fastify({
@@ -26,6 +27,9 @@ export async function createServer() {
 
   // Register enterprise knowledge extraction routes
   await registerExtractionRoutes(server)
+  
+  // Register test LLM route
+  await registerTestLLMRoutes(server)
 
   // Health check endpoint
   server.get('/health', async (request, reply) => {
