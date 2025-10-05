@@ -53,7 +53,7 @@
     "js-yaml": "^4.1.0",
     "toml": "^3.0.0",
     "markdown-it": "^14.0.0",
-    "openapi-parser": "^1.0.0",
+    "@apidevtools/swagger-parser": "^10.1.0",
     "tiktoken": "^1.0.10"
   },
   "devDependencies": {

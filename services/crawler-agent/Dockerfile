@@ -1,7 +1,11 @@
 FROM node:20-alpine
 
-# Install git for repository cloning
-RUN apk add --no-cache git
+# Install git, Python and build tools for tree-sitter compilation
+RUN apk add --no-cache \
+    git \
+    python3 \
+    make \
+    g++
 
 WORKDIR /app
 
