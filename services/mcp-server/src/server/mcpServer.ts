@@ -4,6 +4,7 @@ import { env } from '../config/env.js'
 
 // Import tools
 import { registerSearchCodeTool } from '../tools/searchCode.js'
+import { registerSearchCodeWithContextTool } from '../tools/searchCodeWithContext.js'
 import { registerExplainCodeTool } from '../tools/explainCode.js'
 import { registerGenerateContextTool } from '../tools/generateContext.js'
 import { registerSuggestRefactorTool } from '../tools/suggestRefactor.js'
@@ -17,6 +18,7 @@ import { registerRefactoringPrompt } from '../prompts/refactoring.js'
 import { AuthService } from '../services/authService.js'
 import { ContextService } from '../services/contextService.js'
 import { SearchService } from '../services/searchService.js'
+import { Pool } from 'pg'
 
 const logger = createModuleLogger('mcp-server')
 
@@ -91,6 +93,16 @@ export async function createMcpServer(options: McpServerOptions = {}): Promise<M
   })
 
   try {
+    // Initialize database connection
+    const db = new Pool({
+      host: env.DB_HOST,
+      port: env.DB_PORT,
+      database: env.DB_NAME,
+      user: env.DB_USER,
+      password: env.DB_PASSWORD,
+      max: 20,
+    })
+
     // Initialize services
     const authService = new AuthService()
     const contextService = new ContextService()
@@ -112,10 +124,12 @@ export async function createMcpServer(options: McpServerOptions = {}): Promise<M
       authService,
       contextService,
       searchService,
+      db,
     }
 
     // Register all tools
     await registerSearchCodeTool(server, serverContext)
+    await registerSearchCodeWithContextTool(server, serverContext)
     await registerExplainCodeTool(server, serverContext)
     await registerGenerateContextTool(server, serverContext)
     await registerSuggestRefactorTool(server, serverContext)
@@ -150,4 +164,5 @@ export interface ServerContext {
   authService: AuthService
   contextService: ContextService
   searchService: SearchService
+  db: Pool
 }

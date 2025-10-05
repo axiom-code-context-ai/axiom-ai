@@ -1,8 +1,10 @@
 import Fastify from 'fastify'
+import fastifyPostgres from '@fastify/postgres'
 import { logger } from './utils/logger.js'
 import { env } from './config/env.js'
 import { RepositoryAnalyzer } from './services/repositoryAnalyzer.js'
 import { DatabaseService } from './services/databaseService.js'
+import { registerExtractionRoutes } from './routes/extraction.js'
 
 export async function createServer() {
   const server = Fastify({
@@ -10,8 +12,20 @@ export async function createServer() {
     trustProxy: true,
   })
 
+  // Register PostgreSQL plugin
+  await server.register(fastifyPostgres, {
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    database: env.DB_NAME,
+    user: env.DB_USER,
+    password: env.DB_PASSWORD,
+  })
+
   const analyzer = new RepositoryAnalyzer()
   const database = new DatabaseService()
+
+  // Register enterprise knowledge extraction routes
+  await registerExtractionRoutes(server)
 
   // Health check endpoint
   server.get('/health', async (request, reply) => {
