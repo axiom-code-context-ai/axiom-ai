@@ -1,35 +1,54 @@
 import Fastify from 'fastify'
 import { logger } from './utils/logger.js'
 import { env } from './config/env.js'
-import { QueueManager } from './queues/index.js'
 
-export interface ServerOptions {
-  queues: QueueManager
-}
-
-export async function createServer(options: ServerOptions) {
+export async function createServer() {
   const server = Fastify({
     logger: logger,
     trustProxy: true,
   })
 
-  // Add queues to server context
-  server.decorate('queues', options.queues)
-
   // Health check endpoint
   server.get('/health', async (request, reply) => {
-    return { status: 'healthy', timestamp: new Date().toISOString() }
+    return { 
+      status: 'healthy', 
+      service: 'Axiom AI Crawler Agent',
+      timestamp: new Date().toISOString() 
+    }
   })
 
-  // Crawl endpoint
-  server.post('/api/crawl', async (request, reply) => {
+  // Simple repository analysis endpoint
+  server.post('/analyze', async (request, reply) => {
     try {
-      const crawlRequest = request.body as any
-      await options.queues.crawlQueue.add('crawl-repo', crawlRequest)
-      return { message: 'Crawl job queued', status: 'success' }
+      const { gitUrl } = request.body as any
+      logger.info({ gitUrl }, 'Repository analysis request')
+      
+      // Mock analysis - in real implementation this would:
+      // 1. Clone the repository
+      // 2. Run TreeSitter AST analysis
+      // 3. Generate RepoMix-style context
+      // 4. Store in database for MCP server access
+      
+      const mockAnalysis = {
+        repository: gitUrl,
+        status: 'analyzed',
+        filesProcessed: Math.floor(Math.random() * 100) + 50,
+        contextGenerated: true,
+        patterns: [
+          { type: 'function', count: 25 },
+          { type: 'class', count: 8 },
+          { type: 'component', count: 12 }
+        ],
+        timestamp: new Date().toISOString()
+      }
+
+      // Simulate analysis delay
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      return mockAnalysis
     } catch (error) {
-      logger.error(error, 'Crawl error')
-      return reply.status(500).send({ error: 'Crawl failed' })
+      logger.error(error, 'Analysis error')
+      return reply.status(500).send({ error: 'Analysis failed' })
     }
   })
 
@@ -39,16 +58,14 @@ export async function createServer(options: ServerOptions) {
       service: 'Axiom AI Crawler Agent',
       version: '1.0.0',
       status: 'running',
+      description: 'Simple repository analysis and context generation',
+      endpoints: {
+        health: '/health',
+        analyze: '/analyze'
+      },
       timestamp: new Date().toISOString(),
     }
   })
 
   return server
-}
-
-// Extend Fastify types
-declare module 'fastify' {
-  interface FastifyInstance {
-    queues: QueueManager
-  }
 }

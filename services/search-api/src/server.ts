@@ -1,35 +1,62 @@
 import Fastify from 'fastify'
 import { logger } from './utils/logger.js'
 import { env } from './config/env.js'
-import { SearchEngine } from './services/searchEngine.js'
-import { CacheService } from './services/cacheService.js'
 
-export interface ServerOptions {
-  searchEngine: SearchEngine
-  cache: CacheService
-}
-
-export async function createServer(options: ServerOptions) {
+export async function createServer() {
   const server = Fastify({
     logger: logger,
     trustProxy: true,
   })
 
-  // Add services to server context
-  server.decorate('searchEngine', options.searchEngine)
-  server.decorate('cache', options.cache)
-
   // Health check endpoint
   server.get('/health', async (request, reply) => {
-    return { status: 'healthy', timestamp: new Date().toISOString() }
+    return { 
+      status: 'healthy', 
+      service: 'Axiom AI Search API',
+      timestamp: new Date().toISOString() 
+    }
   })
 
-  // Search endpoint
-  server.post('/api/search', async (request, reply) => {
+  // Simple search endpoint for stored context
+  server.post('/search', async (request, reply) => {
     try {
-      const searchQuery = request.body as any
-      const results = await options.searchEngine.search(searchQuery)
-      return results
+      const { query, repository } = request.body as any
+      logger.info({ query, repository }, 'Search request')
+      
+      // Mock search - in real implementation this would:
+      // 1. Search stored context in database
+      // 2. Return relevant code patterns and samples
+      // 3. Used by MCP server to supply context to LLM
+      
+      const mockResults = {
+        query,
+        repository,
+        results: [
+          {
+            id: '1',
+            type: 'function',
+            name: 'handleUserAuth',
+            code: 'function handleUserAuth(user) {\n  // Authentication logic\n  return validateUser(user);\n}',
+            file: 'src/auth.js',
+            line: 15,
+            relevance: 0.95
+          },
+          {
+            id: '2',
+            type: 'class',
+            name: 'UserService',
+            code: 'class UserService {\n  constructor() {\n    this.users = [];\n  }\n}',
+            file: 'src/services/user.js',
+            line: 5,
+            relevance: 0.87
+          }
+        ],
+        totalCount: 2,
+        searchTime: Date.now(),
+        timestamp: new Date().toISOString()
+      }
+
+      return mockResults
     } catch (error) {
       logger.error(error, 'Search error')
       return reply.status(500).send({ error: 'Search failed' })
@@ -42,17 +69,14 @@ export async function createServer(options: ServerOptions) {
       service: 'Axiom AI Search API',
       version: '1.0.0',
       status: 'running',
+      description: 'Simple search API for stored code context',
+      endpoints: {
+        health: '/health',
+        search: '/search'
+      },
       timestamp: new Date().toISOString(),
     }
   })
 
   return server
-}
-
-// Extend Fastify types
-declare module 'fastify' {
-  interface FastifyInstance {
-    searchEngine: SearchEngine
-    cache: CacheService
-  }
 }

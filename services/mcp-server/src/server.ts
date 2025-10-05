@@ -10,18 +10,44 @@ export async function createServer() {
 
   // Health check endpoint
   server.get('/health', async (request, reply) => {
-    return { status: 'healthy', timestamp: new Date().toISOString() }
+    return { 
+      status: 'healthy', 
+      service: 'Axiom AI MCP Server',
+      timestamp: new Date().toISOString() 
+    }
   })
 
-  // MCP endpoint
-  server.post('/mcp', async (request, reply) => {
+  // Simple context search endpoint
+  server.post('/search-context', async (request, reply) => {
     try {
-      const mcpRequest = request.body as any
-      logger.info({ mcpRequest }, 'MCP request received')
-      return { message: 'MCP request processed', status: 'success' }
+      const { query, repository } = request.body as any
+      logger.info({ query, repository }, 'Context search request')
+      
+      // Mock context search - in real implementation this would:
+      // 1. Search stored context in database
+      // 2. Return relevant code samples and patterns
+      // 3. Supply to LLM for intelligent code generation
+      
+      const mockContext = {
+        query,
+        repository,
+        context: [
+          {
+            type: 'function',
+            name: 'exampleFunction',
+            code: 'function exampleFunction() {\n  // Implementation here\n  return result;\n}',
+            file: 'src/example.js',
+            line: 10
+          }
+        ],
+        summary: 'Found relevant code patterns for your query',
+        timestamp: new Date().toISOString()
+      }
+
+      return mockContext
     } catch (error) {
-      logger.error(error, 'MCP error')
-      return reply.status(500).send({ error: 'MCP request failed' })
+      logger.error(error, 'Context search error')
+      return reply.status(500).send({ error: 'Context search failed' })
     }
   })
 
@@ -31,6 +57,11 @@ export async function createServer() {
       service: 'Axiom AI MCP Server',
       version: '1.0.0',
       status: 'running',
+      description: 'Simple MCP server for context-aware code generation',
+      endpoints: {
+        health: '/health',
+        searchContext: '/search-context'
+      },
       timestamp: new Date().toISOString(),
     }
   })
