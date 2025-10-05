@@ -2,8 +2,6 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install Python 3.11 for tree-sitter compatibility
-RUN apk add --no-cache python3 py3-pip
 
 # Copy package files
 COPY package*.json ./
