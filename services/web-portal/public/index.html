@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axiom AI - Codebase Intelligence</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+            display: none;
+        }
+        .info {
+            background-color: #e3f2fd;
+            padding: 20px;
+            border-radius: 4px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Axiom AI - Codebase Intelligence</h1>
+    
+    <div class="container">
+        <h2>Analyze Repository</h2>
+        <p>Enter a Git URL to analyze the codebase and generate intelligent context</p>
+        <div>
+            <input type="text" id="gitUrl" placeholder="https://github.com/user/repo.git" />
+            <button onclick="analyzeRepo()">Analyze</button>
+        </div>
+        <div class="result" id="result"></div>
+    </div>
+
+    <div class="info">
+        <h3>How It Works</h3>
+        <ol>
+            <li><strong>Analyze:</strong> Enter Git URL → TreeSitter AST analysis</li>
+            <li><strong>Generate:</strong> RepoMix-style context generation</li>
+            <li><strong>Store:</strong> Context stored in database</li>
+            <li><strong>Use:</strong> MCP server supplies context to Cursor/Cline for intelligent coding</li>
+        </ol>
+        
+        <h3>System Status</h3>
+        <p>Search API: <span class="status">✓ Ready</span></p>
+        <p>MCP Server: <span class="status">✓ Ready</span></p>
+        <p>Database: <span class="status">✓ Connected</span></p>
+    </div>
+
+    <script>
+        async function analyzeRepo() {
+            const gitUrl = document.getElementById('gitUrl').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!gitUrl) {
+                alert('Please enter a Git URL');
+                return;
+            }
+
+            resultDiv.innerHTML = '<p>⏳ Analyzing repository...</p>';
+            resultDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gitUrl })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <h3>✅ Analysis Complete!</h3>
+                        <p><strong>Repository:</strong> ${data.repository}</p>
+                        <p><strong>Files Analyzed:</strong> ${data.filesAnalyzed}</p>
+                        <p><strong>Context Generated:</strong> Yes</p>
+                        <p><strong>Status:</strong> Ready for MCP integration</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ Analysis failed: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
