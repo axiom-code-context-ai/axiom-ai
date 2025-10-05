@@ -31,15 +31,25 @@ export class DatabaseService {
     try {
       await client.query('BEGIN')
 
-      // 1. Create or get workspace
-      const workspaceResult = await client.query(
-        `INSERT INTO core.workspaces (name, slug, description, settings)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (slug) DO UPDATE SET updated_at = NOW()
-         RETURNING id`,
-        ['Default Workspace', 'default', 'Default workspace for repository analysis', {}]
+      // 1. Get or create workspace (use existing default workspace)
+      let workspaceResult = await client.query(
+        `SELECT id FROM core.workspaces WHERE slug = $1 LIMIT 1`,
+        ['default']
       )
-      const workspaceId = workspaceResult.rows[0].id
+      
+      let workspaceId
+      if (workspaceResult.rows.length > 0) {
+        workspaceId = workspaceResult.rows[0].id
+      } else {
+        // Create default workspace if it doesn't exist
+        const createResult = await client.query(
+          `INSERT INTO core.workspaces (name, slug, description, settings)
+           VALUES ($1, $2, $3, $4)
+           RETURNING id`,
+          ['Default Workspace', 'default', 'Default workspace for repository analysis', {}]
+        )
+        workspaceId = createResult.rows[0].id
+      }
 
       // 2. Create or update repository
       const repoResult = await client.query(
