@@ -71,22 +71,20 @@ export class DatabaseService {
           for (const example of pattern.examples.slice(0, 5)) {
             await client.query(
               `INSERT INTO vector.code_patterns 
-               (repository_id, file_path, pattern_type, pattern_name, code_snippet, context, language, line_start, line_end, metadata)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-               ON CONFLICT DO NOTHING`,
+               (repository_id, file_path, pattern_type, code_snippet, language, line_start, line_end, metadata)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
               [
                 repositoryId,
                 'multiple-files', // Would be specific file in real TreeSitter analysis
                 pattern.type,
-                example,
-                example,
-                this.generateContext(result),
-                'TypeScript', // Would be detected from file
-                1,
-                1,
+                example, // code_snippet
+                'JavaScript', // language - Would be detected from file
+                1, // line_start
+                1, // line_end
                 {
                   patternCount: pattern.count,
-                  analyzed: result.timestamp
+                  analyzed: result.timestamp,
+                  example: example
                 }
               ]
             )
@@ -97,24 +95,22 @@ export class DatabaseService {
       // 4. Store repository summary
       await client.query(
         `INSERT INTO vector.code_patterns 
-         (repository_id, file_path, pattern_type, pattern_name, code_snippet, context, language, line_start, line_end, metadata)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         ON CONFLICT DO NOTHING`,
+         (repository_id, file_path, pattern_type, code_snippet, language, line_start, line_end, metadata)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           repositoryId,
           'REPOSITORY_SUMMARY',
           'summary',
-          'Repository Context',
-          this.generateContext(result),
-          this.generateContext(result),
-          'markdown',
-          1,
-          1,
+          this.generateContext(result), // code_snippet
+          'markdown', // language
+          1, // line_start
+          1, // line_end
           {
             totalFiles: result.filesProcessed,
             totalLines: result.codeStats.totalLines,
             languages: result.codeStats.languages,
-            patterns: result.patterns
+            patterns: result.patterns,
+            context: this.generateContext(result)
           }
         ]
       )
