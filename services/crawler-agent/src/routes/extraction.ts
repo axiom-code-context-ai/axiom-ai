@@ -76,9 +76,12 @@ export async function registerExtractionRoutes(app: FastifyInstance) {
         });
       } catch (error) {
         logger.error('Failed to trigger extraction:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to trigger extraction';
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        logger.error('Error details:', { message: errorMessage, stack: errorStack });
         reply.code(500).send({
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to trigger extraction',
+          error: errorMessage,
         });
       }
     }
@@ -281,7 +284,9 @@ export async function registerExtractionRoutes(app: FastifyInstance) {
         progress,
       };
     } catch (error) {
-      logger.error(`Extraction failed for job ${job.id}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error(`Extraction failed for job ${job.id}:`, { error: errorMessage, stack: errorStack });
       throw error;
     }
   });
