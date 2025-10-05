@@ -8,14 +8,11 @@ RUN apk add --no-cache python3 py3-pip
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --omit=dev
+# Install dependencies (including dev dependencies for tsx)
+RUN npm install
 
 # Copy source code
 COPY . .
-
-# Build the application
-RUN npm run build
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -28,5 +25,5 @@ USER nodejs
 # Expose port
 EXPOSE 6000
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application in development mode
+CMD ["npm", "run", "dev"]

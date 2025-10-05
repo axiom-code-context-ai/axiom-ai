@@ -6,13 +6,10 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --omit=dev
+RUN npm install
 
 # Copy source code
 COPY . .
-
-# Build the application
-RUN npm run build
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -25,5 +22,5 @@ USER nextjs
 # Expose port
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application in development mode
+CMD ["npm", "run", "dev"]
