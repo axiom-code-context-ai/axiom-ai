@@ -27,13 +27,17 @@ type SearchCodeWithContextInput = z.infer<typeof SearchCodeWithContextInputSchem
  * Register the enhanced search tool with enterprise context
  */
 export async function registerSearchCodeWithContextTool(server: McpServer, context: ServerContext) {
+  // CRITICAL: MCP SDK wraps the schema in z.object() (see sdk/dist/esm/server/mcp.js line 449)
+  // So we must pass the SHAPE, not the ZodObject itself!
+  const schemaShape = SearchCodeWithContextInputSchema.shape
+  
   server.registerTool(
     'search_code_with_enterprise_context',
     {
       title: 'Search Code with Enterprise Context',
       description:
         'Advanced code search that provides hierarchical enterprise-aware context including architecture patterns, domain models, implementation patterns, and framework conventions. This is the recommended tool for code generation tasks.',
-      inputSchema: zodToJsonSchema(SearchCodeWithContextInputSchema, 'SearchCodeWithContextInput') as any,
+      inputSchema: schemaShape as any,
     },
     (async (args: any) => {
       const { query, workspaceId, tokenBudget = 8000, includeHierarchy = true, includeVectorSearch = true } = args || {}

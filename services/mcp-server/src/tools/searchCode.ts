@@ -34,12 +34,16 @@ type SearchCodeInput = z.infer<typeof SearchCodeInputSchema>
  * Register the search code tool with the MCP server
  */
 export async function registerSearchCodeTool(server: McpServer, context: ServerContext) {
+  // CRITICAL: MCP SDK wraps the schema in z.object() (see sdk/dist/esm/server/mcp.js line 449)
+  // So we must pass the SHAPE, not the ZodObject itself!
+  const schemaShape = SearchCodeInputSchema.shape
+  
   server.registerTool(
     'search_code',
     {
       title: 'Search Code',
       description: 'Search for code patterns, functions, classes, or implementations across the codebase using intelligent vector similarity, keyword matching, or hybrid search approaches.',
-      inputSchema: zodToJsonSchema(SearchCodeInputSchema, 'SearchCodeInput') as any,
+      inputSchema: schemaShape as any,
     },
     (async (args: any) => {
       const { query, workspaceId, searchType = 'hybrid', filters, options } = args || {}
