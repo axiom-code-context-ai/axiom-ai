@@ -88,9 +88,36 @@ export class SearchEngine {
     logger.info({ query: query.query, type: query.type, workspaceId: query.workspaceId }, 'Search request received')
     
     try {
-      // Simple keyword search in database
-      const searchQuery = `%${query.query.toLowerCase()}%`
+      // Break query into words for better matching
+      const queryWords = query.query.toLowerCase().split(/\s+/).filter(w => w.length > 2)
       const limit = query.options?.limit || 10
+      
+      // Build WHERE clause with OR conditions for each word
+      const whereConditions: string[] = []
+      const params: any[] = []
+      
+      if (queryWords.length === 0) {
+        // If no valid words, use the full query
+        whereConditions.push(`(
+          LOWER(p.function_name) LIKE $1 OR
+          LOWER(p.class_name) LIKE $1 OR
+          LOWER(p.code_snippet) LIKE $1 OR
+          LOWER(p.file_path) LIKE $1
+        )`)
+        params.push(`%${query.query.toLowerCase()}%`)
+      } else {
+        // Search for any of the words
+        queryWords.forEach((word, idx) => {
+          const paramNum = idx + 1
+          whereConditions.push(`(
+            LOWER(p.function_name) LIKE $${paramNum} OR
+            LOWER(p.class_name) LIKE $${paramNum} OR
+            LOWER(p.code_snippet) LIKE $${paramNum} OR
+            LOWER(p.file_path) LIKE $${paramNum}
+          )`)
+          params.push(`%${word}%`)
+        })
+      }
       
       let sql = `
         SELECT 
@@ -106,15 +133,8 @@ export class SearchEngine {
           p.metadata
         FROM vector.code_patterns p
         JOIN core.repositories r ON p.repository_id = r.id
-        WHERE (
-          LOWER(p.function_name) LIKE $1 OR
-          LOWER(p.class_name) LIKE $1 OR
-          LOWER(p.code_snippet) LIKE $1 OR
-          LOWER(p.file_path) LIKE $1
-        )
+        WHERE ${whereConditions.join(' OR ')}
       `
-      
-      const params: any[] = [searchQuery]
       
       // Optionally filter by workspace
       if (query.workspaceId) {

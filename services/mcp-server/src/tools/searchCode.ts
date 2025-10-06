@@ -56,12 +56,31 @@ export async function registerSearchCodeTool(server: McpServer, context: ServerC
           const detectedWorkspace = await context.workspaceDetector.detectAndGetWorkspace()
           
           if (detectedWorkspace) {
-            effectiveWorkspaceId = detectedWorkspace.id
-            logger.info('Auto-detected workspace from Git repository', {
-              id: detectedWorkspace.id,
-              name: detectedWorkspace.name,
-              gitUrl: detectedWorkspace.gitUrl,
-            })
+            // Check if detected workspace has any code patterns
+            const patternCheck = await context.db.query(
+              `SELECT COUNT(*) as count FROM vector.code_patterns cp
+               JOIN core.repositories r ON cp.repository_id = r.id
+               WHERE r.workspace_id = $1`,
+              [detectedWorkspace.id]
+            )
+            
+            const patternCount = parseInt(patternCheck.rows[0]?.count || '0')
+            
+            if (patternCount > 0) {
+              effectiveWorkspaceId = detectedWorkspace.id
+              logger.info('Auto-detected workspace from Git repository', {
+                id: detectedWorkspace.id,
+                name: detectedWorkspace.name,
+                gitUrl: detectedWorkspace.gitUrl,
+                patterns: patternCount,
+              })
+            } else {
+              // Detected workspace has no patterns - search all workspaces
+              logger.info('Detected workspace has no patterns, searching across all workspaces', {
+                detectedWorkspace: detectedWorkspace.name,
+              })
+              effectiveWorkspaceId = null as any // Will search all workspaces
+            }
           } else {
             // No Git repo detected - search across ALL workspaces
             logger.info('No Git repository detected, searching across all workspaces')
