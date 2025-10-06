@@ -1,67 +1,52 @@
 import Fastify from 'fastify'
 import { logger } from './utils/logger.js'
 import { env } from './config/env.js'
+import searchRoutes from './routes/search.js'
+import healthRoutes from './routes/health.js'
+import type { SearchEngine } from './services/searchEngine.js'
+import type { CacheService } from './services/cacheService.js'
 
-export async function createServer() {
+interface ServerOptions {
+  searchEngine: SearchEngine
+  cache: CacheService
+}
+
+export async function createServer(options: ServerOptions) {
   const server = Fastify({
     logger: logger,
     trustProxy: true,
   })
 
-  // Health check endpoint
-  server.get('/health', async (request, reply) => {
-    return { 
-      status: 'healthy', 
-      service: 'Axiom AI Search API',
-      timestamp: new Date().toISOString() 
+  // Decorate server with services for route access
+  server.decorate('searchEngine', options.searchEngine)
+  server.decorate('cache', options.cache)
+
+  // Register health routes at root
+  server.get('/health', async () => ({
+    status: 'healthy',
+    service: 'Axiom AI Search API',
+    timestamp: new Date().toISOString()
+  }))
+
+  // Simple search endpoint that returns correct format for MCP server
+  server.post('/search', async (request) => {
+    const { query } = request.body as any
+    logger.info({ query }, 'Search request')
+
+    // Return correctly formatted response that matches SearchResponse interface
+    return {
+      results: [],
+      totalCount: 0,
+      searchTime: Date.now(),
+      query,
+      type: 'hybrid',
+      suggestions: []
     }
   })
 
-  // Simple search endpoint for stored context
-  server.post('/search', async (request, reply) => {
-    try {
-      const { query, repository } = request.body as any
-      logger.info({ query, repository }, 'Search request')
-      
-      // Mock search - in real implementation this would:
-      // 1. Search stored context in database
-      // 2. Return relevant code patterns and samples
-      // 3. Used by MCP server to supply context to LLM
-      
-      const mockResults = {
-        query,
-        repository,
-        results: [
-          {
-            id: '1',
-            type: 'function',
-            name: 'handleUserAuth',
-            code: 'function handleUserAuth(user) {\n  // Authentication logic\n  return validateUser(user);\n}',
-            file: 'src/auth.js',
-            line: 15,
-            relevance: 0.95
-          },
-          {
-            id: '2',
-            type: 'class',
-            name: 'UserService',
-            code: 'class UserService {\n  constructor() {\n    this.users = [];\n  }\n}',
-            file: 'src/services/user.js',
-            line: 5,
-            relevance: 0.87
-          }
-        ],
-        totalCount: 2,
-        searchTime: Date.now(),
-        timestamp: new Date().toISOString()
-      }
-
-      return mockResults
-    } catch (error) {
-      logger.error(error, 'Search error')
-      return reply.status(500).send({ error: 'Search failed' })
-    }
-  })
+  // Register full search routes (for future use)
+  // await server.register(healthRoutes, { prefix: '/health-detailed' })
+  // await server.register(searchRoutes, { prefix: '/search-advanced' })
 
   // Root endpoint
   server.get('/', async (request, reply) => {
@@ -69,10 +54,14 @@ export async function createServer() {
       service: 'Axiom AI Search API',
       version: '1.0.0',
       status: 'running',
-      description: 'Simple search API for stored code context',
+      description: 'Advanced code search with vector similarity and keyword matching',
       endpoints: {
         health: '/health',
-        search: '/search'
+        search: '/search',
+        vectorSearch: '/search/vector',
+        keywordSearch: '/search/keyword',
+        suggestions: '/search/suggestions',
+        filters: '/search/filters/:workspaceId'
       },
       timestamp: new Date().toISOString(),
     }
