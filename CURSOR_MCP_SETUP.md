@@ -22,11 +22,11 @@
       ],
       "env": {
         "NODE_ENV": "development",
-        "DATABASE_URL": "postgresql://axiom:axiom@localhost:5432/axiom",
+        "DATABASE_URL": "postgresql://axiom:axiom_secure_password_2024@localhost:5432/axiom",
         "POSTGRES_HOST": "localhost",
         "POSTGRES_PORT": "5432",
         "POSTGRES_USER": "axiom",
-        "POSTGRES_PASSWORD": "axiom",
+        "POSTGRES_PASSWORD": "axiom_secure_password_2024",
         "POSTGRES_DB": "axiom",
         "SEARCH_API_URL": "http://localhost:4000",
         "LOG_LEVEL": "info",
