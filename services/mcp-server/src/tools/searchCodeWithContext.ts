@@ -32,42 +32,10 @@ export async function registerSearchCodeWithContextTool(server: McpServer, conte
       title: 'Search Code with Enterprise Context',
       description:
         'Advanced code search that provides hierarchical enterprise-aware context including architecture patterns, domain models, implementation patterns, and framework conventions. This is the recommended tool for code generation tasks.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          query: {
-            type: 'string',
-            minLength: 1,
-            maxLength: 2000,
-            description: 'Your task description or question (e.g., "Add payment processing with Stripe")',
-          },
-          workspaceId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'Workspace ID to search in (optional if provided in context)',
-          },
-          tokenBudget: {
-            type: 'integer',
-            minimum: 1000,
-            maximum: 16000,
-            default: 8000,
-            description: 'Maximum tokens to use for context (adjust based on model limits)',
-          },
-          includeHierarchy: {
-            type: 'boolean',
-            default: true,
-            description: 'Include hierarchical enterprise context (architecture, domain, patterns, standards)',
-          },
-          includeVectorSearch: {
-            type: 'boolean',
-            default: true,
-            description: 'Include traditional vector search results',
-          },
-        },
-        required: ['query'],
-      },
+      inputSchema: SearchCodeWithContextInputSchema as any,
     },
-    async ({ query, workspaceId, tokenBudget = 8000, includeHierarchy = true, includeVectorSearch = true }) => {
+    (async (args: any) => {
+      const { query, workspaceId, tokenBudget = 8000, includeHierarchy = true, includeVectorSearch = true } = args || {}
       try {
         // Validate input
         const validatedInput = SearchCodeWithContextInputSchema.parse({
@@ -244,7 +212,7 @@ Enterprise context is not yet available. The repository is currently being analy
           ],
         };
       }
-    }
+    }) as any
   );
 
   logger.info('Search code with enterprise context tool registered successfully');

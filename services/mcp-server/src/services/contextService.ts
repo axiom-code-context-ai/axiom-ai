@@ -162,7 +162,7 @@ Focus on practical insights that would help a developer understand and use this 
       // Try OpenAI first
       if (this.openai) {
         const response = await this.openai.chat.completions.create({
-          model: 'gpt-4',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
@@ -173,7 +173,7 @@ Focus on practical insights that would help a developer understand and use this 
               content: prompt,
             },
           ],
-          max_tokens: Math.min(maxTokens, 4096),
+          max_tokens: Math.min(maxTokens ?? 2048, 4096),
           temperature: 0.3,
         })
 
@@ -182,9 +182,9 @@ Focus on practical insights that would help a developer understand and use this 
 
       // Fall back to Anthropic
       if (this.anthropic) {
-        const response = await this.anthropic.messages.create({
+        const response: any = await this.anthropic.messages.create({
           model: 'claude-3-sonnet-20240229',
-          max_tokens: Math.min(maxTokens, 4096),
+          max_tokens: Math.min(maxTokens ?? 2048, 4096),
           temperature: 0.3,
           messages: [
             {
@@ -194,7 +194,7 @@ Focus on practical insights that would help a developer understand and use this 
           ],
         })
 
-        const content = response.content[0]?.type === 'text' ? response.content[0].text : ''
+        const content = (response as any).content?.[0]?.type === 'text' ? (response as any).content?.[0]?.text : ''
         return this.parseContextResponse(content, maxTokens)
       }
 
@@ -238,7 +238,7 @@ Focus on practical insights that would help a developer understand and use this 
           if (match) {
             codeExamples.push({
               title: 'Code Example',
-              code: match[2].trim(),
+              code: (match[2] ?? '').trim(),
               explanation: 'Generated code example',
               language: match[1] || 'text',
             })
@@ -282,15 +282,15 @@ Focus on practical insights that would help a developer understand and use this 
     for (const line of lines) {
       if (line.includes('(') && line.includes(')')) {
         const langMatch = line.match(/\((\w+)\)/)
-        if (langMatch) languages.add(langMatch[1])
+        if (langMatch) languages.add(langMatch[1] ?? 'text')
       }
       if (line.includes('Pattern Type:')) {
         const typeMatch = line.match(/Pattern Type:\s*(\w+)/)
-        if (typeMatch) patternTypes.add(typeMatch[1])
+        if (typeMatch) patternTypes.add(typeMatch[1] ?? 'pattern')
       }
       if (line.includes('###') && line.includes('.')) {
         const funcMatch = line.match(/###\s*\d+\.\s*(.+)/)
-        if (funcMatch) functions.add(funcMatch[1])
+        if (funcMatch) functions.add(funcMatch[1] ?? 'Function')
       }
     }
 
@@ -345,7 +345,7 @@ Please provide:
 
       if (this.openai) {
         const completion = await this.openai.chat.completions.create({
-          model: 'gpt-4',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',

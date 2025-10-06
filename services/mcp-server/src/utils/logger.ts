@@ -1,16 +1,22 @@
-import pino from 'pino'
+import pino, { Logger } from 'pino'
 
-export const logger = pino({
+const baseLogger: Logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  transport: process.env.NODE_ENV === 'development' ? {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'SYS:standard',
-      ignore: 'pid,hostname'
-    }
-  } : undefined
+  ...(process.env.NODE_ENV === 'development'
+    ? {
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname',
+          },
+        },
+      }
+    : {}),
 })
+
+export const logger = baseLogger
 
 export function createModuleLogger(module: string) {
   return logger.child({ module })

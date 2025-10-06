@@ -4,7 +4,7 @@ import { env } from './config/env.js'
 
 export async function createServer() {
   const server = Fastify({
-    logger: logger,
+    logger: true,
     trustProxy: true,
   })
 

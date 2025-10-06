@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
 import { createModuleLogger } from '../utils/logger.js'
 import { env } from '../config/env.js'
 
@@ -61,7 +61,7 @@ export interface ComplianceCheck {
 }
 
 export class SecurityService {
-  private apiClient: axios.AxiosInstance
+  private apiClient: AxiosInstance
 
   constructor() {
     this.apiClient = axios.create({
@@ -82,21 +82,21 @@ export class SecurityService {
         })
         return config
       },
-      (error) => {
+      (error: AxiosError) => {
         logger.error('Security API request error:', error)
         return Promise.reject(error)
       }
     )
 
     this.apiClient.interceptors.response.use(
-      (response) => {
+      (response: AxiosResponse) => {
         logger.debug('Security API response received', {
           status: response.status,
           url: response.config.url,
         })
         return response
       },
-      (error) => {
+      (error: AxiosError) => {
         logger.error('Security API response error:', {
           status: error.response?.status,
           message: error.message,
@@ -133,16 +133,16 @@ export class SecurityService {
       logger.error('Failed to start security scan:', error)
       
       if (axios.isAxiosError(error)) {
-        if (error.response?.status === 400) {
+        if (error.response && error.response.status === 400) {
           throw new Error(`Invalid scan request: ${error.response.data?.message || 'Bad request'}`)
         }
-        if (error.response?.status === 404) {
+        if (error.response && error.response.status === 404) {
           throw new Error('Workspace or repository not found')
         }
-        if (error.response?.status === 429) {
+        if (error.response && error.response.status === 429) {
           throw new Error('Rate limit exceeded. Please try again later.')
         }
-        if (error.response?.status >= 500) {
+        if (error.response && error.response.status !== undefined && error.response.status >= 500) {
           throw new Error('Security service is temporarily unavailable')
         }
       }

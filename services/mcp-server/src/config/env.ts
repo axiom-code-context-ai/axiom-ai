@@ -25,6 +25,9 @@ const envSchema = z.object({
   REDIS_URL: z.string().optional(),
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.coerce.number().default(6379),
+  JWT_SECRET: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  MAX_CONTEXT_LENGTH: z.coerce.number().default(2048),
 })
 
 export type Env = z.infer<typeof envSchema>

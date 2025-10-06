@@ -38,98 +38,10 @@ export async function registerSearchCodeTool(server: McpServer, context: ServerC
     {
       title: 'Search Code',
       description: 'Search for code patterns, functions, classes, or implementations across the codebase using intelligent vector similarity, keyword matching, or hybrid search approaches.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          query: {
-            type: 'string',
-            minLength: 1,
-            maxLength: 1000,
-            description: 'Search query for finding code patterns, functions, or implementations. Use natural language or specific code terms.',
-          },
-          workspaceId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'Workspace ID to search in (optional if provided in context)',
-          },
-          searchType: {
-            type: 'string',
-            enum: ['vector', 'keyword', 'hybrid'],
-            default: 'hybrid',
-            description: 'Search type: vector (semantic similarity), keyword (exact matching), or hybrid (combined approach)',
-          },
-          filters: {
-            type: 'object',
-            description: 'Additional search filters to narrow down results',
-            properties: {
-              languages: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Filter by programming languages (e.g., ["typescript", "python", "java"])',
-              },
-              fileTypes: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Filter by file extensions (e.g., [".ts", ".py", ".java"])',
-              },
-              repositories: {
-                type: 'array',
-                items: { type: 'string', format: 'uuid' },
-                description: 'Filter by specific repository IDs',
-              },
-              patternTypes: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Filter by code pattern types (e.g., ["function", "class", "interface"])',
-              },
-              dateRange: {
-                type: 'object',
-                description: 'Filter by date range',
-                properties: {
-                  from: {
-                    type: 'string',
-                    format: 'date-time',
-                    description: 'Search from this date (ISO 8601 format)',
-                  },
-                  to: {
-                    type: 'string',
-                    format: 'date-time',
-                    description: 'Search until this date (ISO 8601 format)',
-                  },
-                },
-              },
-            },
-          },
-          options: {
-            type: 'object',
-            description: 'Search options and configuration',
-            properties: {
-              limit: {
-                type: 'integer',
-                minimum: 1,
-                maximum: 50,
-                default: 10,
-                description: 'Maximum number of results to return',
-              },
-              includeContent: {
-                type: 'boolean',
-                default: true,
-                description: 'Include full code content in results',
-              },
-              similarityThreshold: {
-                type: 'number',
-                minimum: 0,
-                maximum: 1,
-                default: 0.7,
-                description: 'Minimum similarity threshold for vector search (0.0 to 1.0)',
-              },
-            },
-          },
-        },
-        required: ['query'],
-      },
+      inputSchema: SearchCodeInputSchema as any,
     },
-    async ({ query, workspaceId, searchType = 'hybrid', filters, options }) => {
+    (async (args: any) => {
+      const { query, workspaceId, searchType = 'hybrid', filters, options } = args || {}
       try {
         // Validate input
         const validatedInput = SearchCodeInputSchema.parse({
@@ -265,7 +177,7 @@ ${formattedResults.length < searchResults.totalCount ? `\n*Showing first ${forma
           ],
         }
       }
-    }
+    }) as any
   )
 
   logger.info('Search code tool registered successfully')

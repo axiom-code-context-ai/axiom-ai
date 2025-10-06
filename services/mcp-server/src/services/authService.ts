@@ -45,6 +45,9 @@ export class AuthService {
    */
   private async validateJwtToken(token: string, workspaceId?: string): Promise<boolean> {
     try {
+      if (!env.JWT_SECRET) {
+        return false
+      }
       const payload = jwt.verify(token, env.JWT_SECRET) as any
       
       if (!payload.id || !payload.workspaceId) {
@@ -168,6 +171,7 @@ export class AuthService {
       // Try JWT first
       if (token.startsWith('eyJ')) {
         try {
+          if (!env.JWT_SECRET) throw new Error('missing secret')
           const payload = jwt.verify(token, env.JWT_SECRET) as any
           workspaceId = payload.workspaceId
           permissions = payload.permissions || []

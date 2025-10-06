@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios'
 import { createModuleLogger } from '../utils/logger.js'
 import { env } from '../config/env.js'
 
@@ -59,7 +59,7 @@ export interface SearchResponse {
 }
 
 export class SearchService {
-  private apiClient: axios.AxiosInstance
+  private apiClient: AxiosInstance
 
   constructor() {
     this.apiClient = axios.create({
@@ -81,14 +81,14 @@ export class SearchService {
         })
         return config
       },
-      (error) => {
+      (error: AxiosError) => {
         logger.error('Search API request error:', error)
         return Promise.reject(error)
       }
     )
 
     this.apiClient.interceptors.response.use(
-      (response) => {
+      (response: AxiosResponse) => {
         logger.debug('Search API response received', {
           status: response.status,
           url: response.config.url,
@@ -96,7 +96,7 @@ export class SearchService {
         })
         return response
       },
-      (error) => {
+      (error: AxiosError) => {
         logger.error('Search API response error:', {
           status: error.response?.status,
           message: error.message,
@@ -118,16 +118,16 @@ export class SearchService {
       logger.error('Search request failed:', error)
       
       if (axios.isAxiosError(error)) {
-        if (error.response?.status === 400) {
+        if (error.response && error.response.status === 400) {
           throw new Error(`Invalid search query: ${error.response.data?.message || 'Bad request'}`)
         }
-        if (error.response?.status === 404) {
+        if (error.response && error.response.status === 404) {
           throw new Error('Workspace not found or no access permissions')
         }
-        if (error.response?.status === 429) {
+        if (error.response && error.response.status === 429) {
           throw new Error('Rate limit exceeded. Please try again later.')
         }
-        if (error.response?.status >= 500) {
+        if (error.response && error.response.status !== undefined && error.response.status >= 500) {
           throw new Error('Search service is temporarily unavailable')
         }
       }
