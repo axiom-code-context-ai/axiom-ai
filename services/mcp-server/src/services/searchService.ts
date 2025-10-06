@@ -112,7 +112,7 @@ export class SearchService {
    */
   async search(query: SearchQuery): Promise<SearchResponse> {
     try {
-      const response = await this.apiClient.post<SearchResponse>('/api/search', query)
+      const response = await this.apiClient.post<SearchResponse>('/search', query)
       return response.data
     } catch (error) {
       logger.error('Search request failed:', error)
