@@ -1,15 +1,25 @@
-# 🚀 Cursor MCP Setup - READY TO TEST!
+# 🚀 Axiom AI MCP Server Setup for Cursor
 
-## ✅ Everything is configured! Follow these 3 steps:
+## Quick Setup (5 minutes)
 
----
+### Step 1: Build the MCP Server
 
-## 📋 Step 1: Add MCP Config to Cursor
+```bash
+cd /Users/saurabh_sharmila_nysa_mac/Desktop/Saurabh_OSS/axiom_ai/services/mcp-server
+npm install
+npm run build
+```
 
-1. **Open Cursor Settings** (Cmd + ,)
-2. Search for **"MCP"** or go to **Features → Model Context Protocol**
-3. Click **"Edit Config"** or **"Configure"**
-4. **Copy-paste this entire JSON:**
+### Step 2: Add MCP Server to Cursor
+
+1. Open Cursor Settings: **Cmd + ,**
+2. Search for: **"MCP"**
+3. Click **"Edit in mcp.json"** or navigate to:
+   ```
+   ~/Library/Application Support/Cursor/User/globalStorage/mcp.json
+   ```
+
+4. Add this configuration:
 
 ```json
 {
@@ -23,128 +33,155 @@
       "env": {
         "NODE_ENV": "development",
         "DATABASE_URL": "postgresql://axiom:axiom_secure_password_2024@localhost:5432/axiom",
-        "POSTGRES_HOST": "localhost",
-        "POSTGRES_PORT": "5432",
-        "POSTGRES_USER": "axiom",
-        "POSTGRES_PASSWORD": "axiom_secure_password_2024",
-        "POSTGRES_DB": "axiom",
+        "DB_HOST": "localhost",
+        "DB_PORT": "5432",
+        "DB_NAME": "axiom",
+        "DB_USER": "axiom",
+        "DB_PASSWORD": "axiom_secure_password_2024",
         "SEARCH_API_URL": "http://localhost:4000",
         "LOG_LEVEL": "info",
         "MCP_SERVER_NAME": "axiom-ai",
-        "MCP_SERVER_VERSION": "1.0.0"
+        "MCP_SERVER_VERSION": "1.0.0",
+        "OPENAI_API_KEY": "your-openai-api-key-here"
       }
     }
   }
 }
 ```
 
-5. **Save** the config
+**⚠️ Important:** Replace `your-openai-api-key-here` with your actual OpenAI API key!
 
----
+### Step 3: Restart Cursor
 
-## 🔄 Step 2: Restart Cursor
+```bash
+# Quit Cursor completely
+Cmd + Q
 
-**Important:** Quit Cursor completely (Cmd + Q) and reopen it.
+# Wait 5 seconds
 
-After restart, check that **"axiom-ai"** appears in the MCP servers list in settings.
-
----
-
-## 🧪 Step 3: Test with These Prompts
-
-Open the **Axiom AI repository** in Cursor:
-```
-/Users/saurabh_sharmila_nysa_mac/Desktop/Saurabh_OSS/axiom_ai
+# Reopen Cursor
 ```
 
-### Test Prompt 1 (Basic):
-```
-@axiom-ai Find all FastifyInstance usage in this codebase
-```
+### Step 4: Verify MCP Server Loaded
 
-### Test Prompt 2 (Advanced):
-```
-@axiom-ai Search for authentication patterns and show me how context is assembled
-```
+1. Open Cursor Settings: **Cmd + ,**
+2. Search for: **"MCP"**
+3. Look for **"axiom-ai"** with a ✅ green checkmark
 
-### Test Prompt 3 (Enterprise Context):
+### Step 5: Test It!
+
+Open any folder in Cursor and try:
+
 ```
-@axiom-ai Using this codebase's patterns, show me how to add a new MCP tool
+@axiom-ai Search for useState hook patterns
 ```
 
 ---
 
-## 📊 How to Verify It's Working
+## 🔍 Troubleshooting
 
-### ✅ Signs MCP is Working:
-1. **Cursor chat shows** tool calls like: `[Called: search_code]` or `[Called: search_code_with_enterprise_context]`
-2. **Response includes** specific file paths and code from YOUR codebase
-3. **Log file grows** at `/tmp/axiom-mcp-server.log`
+### Check Logs
 
-### Watch Logs Live:
 ```bash
 tail -f /tmp/axiom-mcp-server.log
 ```
 
-Look for these messages:
-- `"No workspace ID provided, auto-detecting from Git repository..."`
-- `"Auto-detected workspace"`
-- `"Search code tool called"`
+### Common Issues
 
----
+#### 1. "Database connection error"
+- Check Docker is running: `docker ps`
+- Verify password matches: `axiom_secure_password_2024`
+- Ensure PostgreSQL container is healthy
 
-## ❌ Troubleshooting
+#### 2. "MCP server not loading"
+- Verify the path in mcp.json points to the correct location
+- Check build succeeded: `ls -la services/mcp-server/dist/index.js`
+- Check Node.js is installed: `node --version`
 
-### Problem: "axiom-ai" doesn't appear in MCP servers list
-**Fix:** Make sure you saved the config and restarted Cursor completely.
+#### 3. "OpenAI API error"
+- Verify your API key is valid
+- Check you have credits: https://platform.openai.com/account/usage
 
-### Problem: Tool calls shown but errors returned
-**Fix:** Check Docker services are running:
+### Test Docker Services
+
 ```bash
-docker ps
+cd /Users/saurabh_sharmila_nysa_mac/Desktop/Saurabh_OSS/axiom_ai
+docker-compose -f docker-compose.simple.yml ps
 ```
-You should see all 6 containers (postgres, redis, search-api, crawler-agent, web-portal, mcp-server).
 
-### Problem: "No workspace found"
-**Fix:** Make sure you opened a Git repository in Cursor (the axiom_ai folder).
+All services should show "healthy" status.
 
 ---
 
-## 🎯 Expected Behavior
+## 📊 How It Works
 
-When you use `@axiom-ai` in a prompt:
+### Architecture
 
-1. **Cursor** calls the MCP server via stdio
-2. **MCP server** auto-detects your Git repository
-3. **MCP server** queries the database for enterprise context
-4. **Response** includes:
-   - Relevant code snippets from YOUR codebase
-   - Architectural patterns YOU use
-   - Implementation templates from YOUR code
-   - Standards and conventions detected in YOUR repo
+```
+Cursor IDE
+    ↓
+Axiom MCP Server (local Node.js process)
+    ↓
+Search API (Docker container on :4000)
+    ↓
+PostgreSQL Database (Docker container on :5432)
+```
+
+### Search Flow
+
+1. **User types:** `@axiom-ai Search for useState patterns`
+2. **Cursor** sends request to MCP server via stdio
+3. **MCP server** calls Search API at http://localhost:4000
+4. **Search API** queries PostgreSQL with vector similarity
+5. **Results** flow back to Cursor with code patterns
+
+### No Workspace Needed!
+
+Unlike other systems, Axiom AI searches **ALL analyzed repositories** by default. No workspace ID, no manual configuration - it just works! 🎉
 
 ---
 
-## 📝 Log File Location
+## 🎯 Next Steps
 
-All MCP server activity is logged to:
-```
-/tmp/axiom-mcp-server.log
-```
+1. **Analyze a repository** via web portal: http://localhost:3000
+2. **Try different searches:**
+   ```
+   @axiom-ai Find custom hooks with useState
+   @axiom-ai Search for authentication patterns
+   @axiom-ai Show error handling examples
+   ```
 
-View latest logs:
-```bash
-tail -50 /tmp/axiom-mcp-server.log
-```
+3. **Watch logs** to see what's happening:
+   ```bash
+   tail -f /tmp/axiom-mcp-server.log
+   ```
 
 ---
 
-## ✨ You're Ready!
+## 🆘 Need Help?
 
-1. ✅ MCP server built and configured
-2. ✅ Logging enabled at `/tmp/axiom-mcp-server.log`
-3. ✅ Config file ready to copy
-4. ✅ Docker services running
+If you're still having issues:
 
-**Next:** Add the config to Cursor, restart, and test! 🚀
+1. **Clear logs and restart:**
+   ```bash
+   rm /tmp/axiom-mcp-server.log
+   pkill -f "node.*mcp-server"
+   # Then restart Cursor
+   ```
 
+2. **Check Docker services:**
+   ```bash
+   docker-compose -f docker-compose.simple.yml logs search-api
+   docker-compose -f docker-compose.simple.yml logs postgres
+   ```
+
+3. **Test search-api directly:**
+   ```bash
+   curl -X POST http://localhost:4000/search \
+     -H 'Content-Type: application/json' \
+     -d '{"query":"useState","limit":5}'
+   ```
+
+---
+
+**That's it! You're all set! 🚀**
