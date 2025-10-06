@@ -8,6 +8,11 @@ const envSchema = z.object({
 
   // Database
   DATABASE_URL: z.string().url(),
+  DB_HOST: z.string().default('localhost'),
+  DB_PORT: z.coerce.number().default(5432),
+  DB_NAME: z.string().default('axiom'),
+  DB_USER: z.string().default('axiom'),
+  DB_PASSWORD: z.string().default(''),
 
   // Redis Cache
   REDIS_URL: z.string().url(),

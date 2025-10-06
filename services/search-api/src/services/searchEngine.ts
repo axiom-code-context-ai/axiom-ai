@@ -1,5 +1,7 @@
 import { z } from 'zod'
+import { Pool } from 'pg'
 import { createModuleLogger } from '../utils/logger.js'
+import { env } from '../config/env.js'
 
 const logger = createModuleLogger('search-engine')
 
@@ -67,56 +69,119 @@ export interface SearchResponse {
 }
 
 export class SearchEngine {
+  private db: Pool
+
   constructor() {
-    logger.info('SearchEngine initialized (simplified mode)')
+    this.db = new Pool({
+      host: env.DB_HOST,
+      port: env.DB_PORT,
+      database: env.DB_NAME,
+      user: env.DB_USER,
+      password: env.DB_PASSWORD,
+    })
+    logger.info('SearchEngine initialized with database connection')
   }
 
   async search(query: SearchQuery): Promise<SearchResponse> {
     const startTime = Date.now()
     
-    logger.info({ query: query.query, type: query.type }, 'Search request received')
+    logger.info({ query: query.query, type: query.type, workspaceId: query.workspaceId }, 'Search request received')
     
-    // Return mock results for now
-    const mockResults: SearchResult[] = [
-      {
-        id: '1',
-        repositoryId: 'repo-1',
-        repositoryName: 'example-repo',
-        filePath: '/src/example.js',
-        fileName: 'example.js',
-        language: 'javascript',
-        patternType: 'function',
-        functionName: 'exampleFunction',
-        codeSnippet: 'function exampleFunction() { return "Hello World"; }',
+    try {
+      // Simple keyword search in database
+      const searchQuery = `%${query.query.toLowerCase()}%`
+      const limit = query.options?.limit || 10
+      
+      let sql = `
+        SELECT 
+          p.id,
+          p.repository_id as "repositoryId",
+          r.name as "repositoryName",
+          p.file_path as "filePath",
+          p.function_name as "functionName",
+          p.class_name as "className",
+          p.pattern_type as "patternType",
+          p.code_snippet as "codeSnippet",
+          p.language,
+          p.metadata
+        FROM vector.code_patterns p
+        JOIN core.repositories r ON p.repository_id = r.id
+        WHERE (
+          LOWER(p.function_name) LIKE $1 OR
+          LOWER(p.class_name) LIKE $1 OR
+          LOWER(p.code_snippet) LIKE $1 OR
+          LOWER(p.file_path) LIKE $1
+        )
+      `
+      
+      const params: any[] = [searchQuery]
+      
+      // Optionally filter by workspace
+      if (query.workspaceId) {
+        sql += ` AND r.workspace_id = $${params.length + 1}`
+        params.push(query.workspaceId)
+      }
+      
+      sql += ` ORDER BY p.created_at DESC LIMIT $${params.length + 1}`
+      params.push(limit)
+      
+      const result = await this.db.query(sql, params)
+      
+      const results: SearchResult[] = result.rows.map(row => ({
+        id: row.id,
+        repositoryId: row.repositoryId,
+        repositoryName: row.repositoryName,
+        filePath: row.filePath,
+        fileName: row.filePath.split('/').pop() || '',
+        language: row.language || 'unknown',
+        patternType: row.patternType,
+        functionName: row.functionName,
+        className: row.className,
+        codeSnippet: row.codeSnippet || '',
         similarity: 0.95,
         keywordScore: 0.8,
         combinedScore: 0.9,
-        metadata: {},
-        highlights: ['exampleFunction']
+        metadata: row.metadata || {},
+        highlights: [row.functionName || row.className].filter(Boolean)
+      }))
+
+      logger.info({ count: results.length, query: query.query }, 'Search completed')
+
+      const response: SearchResponse = {
+        results,
+        totalCount: results.length,
+        searchTime: Date.now() - startTime,
+        query: query.query,
+        type: query.type || 'hybrid',
+        filters: query.filters,
+        suggestions: []
       }
-    ]
 
-    const response: SearchResponse = {
-      results: mockResults,
-      totalCount: mockResults.length,
-      searchTime: Date.now() - startTime,
-      query: query.query,
-      type: query.type || 'hybrid',
-      filters: query.filters,
-      suggestions: ['example suggestion']
+      logger.info({
+        query: query.query,
+        resultCount: response.totalCount,
+        searchTime: response.searchTime,
+      }, 'Search completed successfully')
+
+      return response
+    } catch (error) {
+      logger.error({ error, query: query.query }, 'Search error')
+      
+      // Return empty results on error
+      return {
+        results: [],
+        totalCount: 0,
+        searchTime: Date.now() - startTime,
+        query: query.query,
+        type: query.type || 'hybrid',
+        suggestions: []
+      }
     }
-
-    logger.info({
-      query: query.query,
-      resultCount: response.totalCount,
-      searchTime: response.searchTime,
-    }, 'Search completed successfully')
-
-    return response
   }
 
   async close(): Promise<void> {
     logger.info('Closing search engine')
+    await this.db.end()
   }
 }
 

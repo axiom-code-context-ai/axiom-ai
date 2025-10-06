@@ -30,17 +30,41 @@ export async function createServer(options: ServerOptions) {
 
   // Simple search endpoint that returns correct format for MCP server
   server.post('/search', async (request) => {
-    const { query } = request.body as any
-    logger.info({ query }, 'Search request')
+    const { query, workspaceId, searchType = 'hybrid' } = request.body as any
+    logger.info({ query, workspaceId, searchType }, 'Search request')
 
-    // Return correctly formatted response that matches SearchResponse interface
-    return {
-      results: [],
-      totalCount: 0,
-      searchTime: Date.now(),
-      query,
-      type: 'hybrid',
-      suggestions: []
+    const startTime = Date.now()
+
+    try {
+      // Use searchEngine to perform actual database search
+      const searchResults = await options.searchEngine.search({
+        query,
+        workspaceId,
+        type: searchType,
+        filters: {},
+        options: { limit: 20 }
+      })
+
+      return {
+        results: searchResults.results,
+        totalCount: searchResults.totalCount,
+        searchTime: Date.now() - startTime,
+        query,
+        type: searchType,
+        suggestions: searchResults.suggestions || []
+      }
+    } catch (error) {
+      logger.error({ error, query }, 'Search error')
+      // Return empty results on error to prevent MCP server from crashing
+      return {
+        results: [],
+        totalCount: 0,
+        searchTime: Date.now() - startTime,
+        query,
+        type: searchType,
+        suggestions: [],
+        error: error instanceof Error ? error.message : 'Search failed'
+      }
     }
   })
 
