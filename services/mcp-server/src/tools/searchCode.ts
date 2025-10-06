@@ -52,41 +52,39 @@ export async function registerSearchCodeTool(server: McpServer, context: ServerC
         let effectiveWorkspaceId = workspaceId || context.workspaceId
         
         if (!effectiveWorkspaceId) {
-          logger.info('No workspace ID provided, auto-detecting from Git repository...')
+          logger.info('No workspace ID provided, attempting auto-detection...')
           const detectedWorkspace = await context.workspaceDetector.detectAndGetWorkspace()
           
           if (detectedWorkspace) {
             effectiveWorkspaceId = detectedWorkspace.id
-            logger.info('Auto-detected workspace', {
+            logger.info('Auto-detected workspace from Git repository', {
               id: detectedWorkspace.id,
               name: detectedWorkspace.name,
               gitUrl: detectedWorkspace.gitUrl,
             })
           } else {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: '⚠️ Could not detect workspace. Please ensure you are in a Git repository, or provide a workspace ID explicitly.',
-                },
-              ],
-              isError: true,
-            }
+            // No Git repo detected - search across ALL workspaces
+            logger.info('No Git repository detected, searching across all workspaces')
+            effectiveWorkspaceId = null as any // Will search all workspaces
           }
         }
         
-        // Validate input
-        const validatedInput = SearchCodeInputSchema.parse({
+        // Validate input (skip workspaceId validation if searching all workspaces)
+        const inputToValidate: any = {
           query,
-          workspaceId: effectiveWorkspaceId,
           searchType,
           filters,
           options,
-        })
+        }
+        if (effectiveWorkspaceId) {
+          inputToValidate.workspaceId = effectiveWorkspaceId
+        }
+        
+        const validatedInput = SearchCodeInputSchema.parse(inputToValidate)
 
         logger.info('Performing code search', {
           query: validatedInput.query,
-          workspaceId: effectiveWorkspaceId,
+          workspaceId: effectiveWorkspaceId || 'all',
           searchType: validatedInput.searchType,
           filters: validatedInput.filters,
         })
@@ -94,7 +92,7 @@ export async function registerSearchCodeTool(server: McpServer, context: ServerC
         // Perform the search using the search service
         const searchResults = await context.searchService.search({
           query: validatedInput.query,
-          workspaceId: effectiveWorkspaceId,
+          workspaceId: effectiveWorkspaceId || undefined,
           type: validatedInput.searchType,
           filters: validatedInput.filters,
           options: validatedInput.options,

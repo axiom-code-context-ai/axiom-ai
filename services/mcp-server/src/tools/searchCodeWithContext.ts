@@ -46,26 +46,60 @@ export async function registerSearchCodeWithContextTool(server: McpServer, conte
         let effectiveWorkspaceId = workspaceId || context.workspaceId
         
         if (!effectiveWorkspaceId) {
-          logger.info('No workspace ID provided, auto-detecting from Git repository...')
+          logger.info('No workspace ID provided, attempting auto-detection...')
           const detectedWorkspace = await context.workspaceDetector.detectAndGetWorkspace()
           
           if (detectedWorkspace) {
             effectiveWorkspaceId = detectedWorkspace.id
-            logger.info('Auto-detected workspace', {
+            logger.info('Auto-detected workspace from Git repository', {
               id: detectedWorkspace.id,
               name: detectedWorkspace.name,
               gitUrl: detectedWorkspace.gitUrl,
             })
           } else {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: '⚠️ Could not detect workspace. Please ensure you are in a Git repository, or provide a workspace ID explicitly.',
-                },
-              ],
-              isError: true,
+            // No Git repo detected - try to find the most recent analyzed workspace
+            logger.info('No Git repository detected, searching for analyzed workspaces...')
+            const availableWorkspaces = await context.db.query(
+              `SELECT DISTINCT w.id, w.name, r.url, r.analyzed_at
+               FROM core.workspaces w
+               JOIN core.repositories r ON r.workspace_id = w.id
+               WHERE r.is_active = true AND r.sync_status = 'completed'
+               ORDER BY r.analyzed_at DESC NULLS LAST
+               LIMIT 5`
+            )
+            
+            if (availableWorkspaces.rows.length === 0) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `⚠️ **No Analyzed Workspaces Found**
+
+No analyzed repositories found. Please analyze a repository first.
+
+**Next Steps:**
+1. Open http://localhost:3000 in your browser
+2. Add a repository (e.g., https://github.com/facebook/react)
+3. Wait for analysis to complete
+4. Try your query again`,
+                  },
+                ],
+                isError: true,
+              }
             }
+            
+            // Use the most recently analyzed workspace
+            effectiveWorkspaceId = availableWorkspaces.rows[0].id
+            const workspaceName = availableWorkspaces.rows[0].name
+            const repoUrl = availableWorkspaces.rows[0].url
+            
+            logger.info('Using most recently analyzed workspace', {
+              id: effectiveWorkspaceId,
+              name: workspaceName,
+              url: repoUrl,
+            })
+            
+            logger.info(`ℹ️  Searching in: ${workspaceName} (${repoUrl})`)
           }
         }
         
