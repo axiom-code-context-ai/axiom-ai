@@ -50,10 +50,13 @@ export class KeywordSearchService {
 
   /**
    * Perform keyword-based search with full-text search and fuzzy matching
+   * @param query - Search query string
+   * @param workspaceId - Optional workspace ID to filter results (searches ALL if not provided)
+   * @param options - Search options
    */
   async search(
     query: string,
-    workspaceId: string,
+    workspaceId: string | undefined,
     options: KeywordSearchOptions = {}
   ): Promise<KeywordSearchResult[]> {
     const {
@@ -129,14 +132,21 @@ export class KeywordSearchService {
   private async performDatabaseSearch(
     query: string,
     searchTerms: string[],
-    workspaceId: string,
+    workspaceId: string | undefined,
     filters: any,
     limit: number
   ): Promise<any[]> {
     // Build WHERE clause
-    let whereClause = 'r.workspace_id = $1'
-    const params: any[] = [workspaceId]
-    let paramIndex = 2
+    let whereClause = '1=1'  // ✅ Start with always-true condition
+    const params: any[] = []
+    let paramIndex = 1
+    
+    // ✅ ONLY filter by workspace if provided
+    if (workspaceId) {
+      whereClause += ` AND r.workspace_id = $${paramIndex}`
+      params.push(workspaceId)
+      paramIndex++
+    }
 
     // Add filters
     if (filters.languages && filters.languages.length > 0) {

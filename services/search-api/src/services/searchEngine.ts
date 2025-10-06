@@ -1,10 +1,35 @@
+import { z } from 'zod'
 import { createModuleLogger } from '../utils/logger.js'
 
 const logger = createModuleLogger('search-engine')
 
+// Zod schema for validating search queries
+export const SearchQuerySchema = z.object({
+  query: z.string().min(1).max(1000),
+  workspaceId: z.string().uuid().optional(), // ✅ OPTIONAL - searches all workspaces if not provided
+  type: z.enum(['vector', 'keyword', 'hybrid']).optional().default('hybrid'),
+  filters: z.object({
+    languages: z.array(z.string()).optional(),
+    fileTypes: z.array(z.string()).optional(),
+    repositories: z.array(z.string().uuid()).optional(),
+    patternTypes: z.array(z.string()).optional(),
+    dateRange: z.object({
+      from: z.string().datetime().optional(),
+      to: z.string().datetime().optional(),
+    }).optional(),
+  }).optional(),
+  options: z.object({
+    limit: z.number().min(1).max(50).optional().default(10),
+    offset: z.number().min(0).optional().default(0),
+    includeContent: z.boolean().optional().default(true),
+    similarityThreshold: z.number().min(0).max(1).optional().default(0.7),
+    keywordThreshold: z.number().min(0).max(1).optional().default(0.5),
+  }).optional(),
+})
+
 export interface SearchQuery {
   query: string
-  workspaceId: string
+  workspaceId?: string // ✅ OPTIONAL
   type?: 'vector' | 'keyword' | 'hybrid'
   filters?: any
   options?: any

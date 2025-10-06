@@ -6,7 +6,7 @@ const logger = createModuleLogger('search-service')
 
 export interface SearchQuery {
   query: string
-  workspaceId: string
+  workspaceId?: string // ✅ OPTIONAL - searches all workspaces if not provided
   type?: 'vector' | 'keyword' | 'hybrid'
   filters?: {
     languages?: string[]

@@ -76,10 +76,13 @@ export class VectorSearchService {
 
   /**
    * Search for similar code patterns using vector similarity
+   * @param queryEmbedding - The embedding vector to search for
+   * @param workspaceId - Optional workspace ID to filter results (searches ALL if not provided)
+   * @param options - Search options including threshold, limit, and filters
    */
   async searchSimilar(
     queryEmbedding: number[],
-    workspaceId: string,
+    workspaceId: string | undefined,
     options: VectorSearchOptions = {}
   ): Promise<VectorSearchResult[]> {
     const {
@@ -90,9 +93,16 @@ export class VectorSearchService {
 
     try {
       // Build the SQL query with filters
-      let whereClause = 'r.workspace_id = $2'
-      const params: any[] = [queryEmbedding, workspaceId]
-      let paramIndex = 3
+      let whereClause = '1=1'  // ✅ Start with always-true condition
+      const params: any[] = [queryEmbedding]
+      let paramIndex = 2
+      
+      // ✅ ONLY filter by workspace if provided
+      if (workspaceId) {
+        whereClause += ` AND r.workspace_id = $${paramIndex}`
+        params.push(workspaceId)
+        paramIndex++
+      }
 
       // Add filters
       if (filters.languages && filters.languages.length > 0) {
