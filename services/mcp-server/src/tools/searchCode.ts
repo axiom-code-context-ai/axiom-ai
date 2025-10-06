@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 import { createModuleLogger } from '../utils/logger.js'
 import { ServerContext } from '../server/mcpServer.js'
 
@@ -38,7 +39,7 @@ export async function registerSearchCodeTool(server: McpServer, context: ServerC
     {
       title: 'Search Code',
       description: 'Search for code patterns, functions, classes, or implementations across the codebase using intelligent vector similarity, keyword matching, or hybrid search approaches.',
-      inputSchema: SearchCodeInputSchema as any,
+      inputSchema: zodToJsonSchema(SearchCodeInputSchema, 'SearchCodeInput') as any,
     },
     (async (args: any) => {
       const { query, workspaceId, searchType = 'hybrid', filters, options } = args || {}

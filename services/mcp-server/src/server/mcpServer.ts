@@ -105,18 +105,30 @@ export async function createMcpServer(options: McpServerOptions = {}): Promise<M
     })
 
     // Initialize services
-    const authService = new AuthService()
+    let authService: AuthService | null = null
+    
+    // Only initialize auth service if we have API key (auth is optional for local testing)
+    if (options.apiKey) {
+      try {
+        authService = new AuthService()
+        // Validate authentication if provided
+        if (options.workspaceId) {
+          const isValid = await authService.validateToken(options.apiKey, options.workspaceId)
+          if (!isValid) {
+            throw new Error('Invalid authentication credentials')
+          }
+          logger.info('Authentication validated successfully')
+        }
+      } catch (error) {
+        logger.warn('Auth service initialization failed, running without authentication:', error)
+        authService = null
+      }
+    } else {
+      logger.info('Running MCP server without authentication (local development mode)')
+    }
+    
     const contextService = new ContextService()
     const searchService = new SearchService()
-
-    // Validate authentication if provided
-    if (options.workspaceId && options.apiKey) {
-      const isValid = await authService.validateToken(options.apiKey, options.workspaceId)
-      if (!isValid) {
-        throw new Error('Invalid authentication credentials')
-      }
-      logger.info('Authentication validated successfully')
-    }
 
     // Create server context
     const serverContext: ServerContext = {
@@ -151,6 +163,8 @@ export async function createMcpServer(options: McpServerOptions = {}): Promise<M
     return server
 
   } catch (error) {
+    console.error('❌ Failed to create MCP server:')
+    console.error(error)
     logger.error('Failed to create MCP server:', error)
     throw error
   }
@@ -160,7 +174,7 @@ export async function createMcpServer(options: McpServerOptions = {}): Promise<M
 export interface ServerContext {
   workspaceId: string
   apiKey?: string
-  authService: AuthService
+  authService: AuthService | null
   contextService: ContextService
   searchService: SearchService
   db: Pool

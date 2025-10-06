@@ -5,6 +5,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { createModuleLogger } from '../utils/logger.js';
 import { ServerContext } from '../server/mcpServer.js';
 import axios from 'axios';
@@ -32,7 +33,7 @@ export async function registerSearchCodeWithContextTool(server: McpServer, conte
       title: 'Search Code with Enterprise Context',
       description:
         'Advanced code search that provides hierarchical enterprise-aware context including architecture patterns, domain models, implementation patterns, and framework conventions. This is the recommended tool for code generation tasks.',
-      inputSchema: SearchCodeWithContextInputSchema as any,
+      inputSchema: zodToJsonSchema(SearchCodeWithContextInputSchema, 'SearchCodeWithContextInput') as any,
     },
     (async (args: any) => {
       const { query, workspaceId, tokenBudget = 8000, includeHierarchy = true, includeVectorSearch = true } = args || {}

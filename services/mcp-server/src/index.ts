@@ -9,10 +9,22 @@ import { validateEnvironment } from './config/env.js'
 import { gracefulShutdown } from './utils/shutdown.js'
 
 async function runStdio() {
-  // Start MCP over stdio for IDEs (Cursor/Cline)
-  const mcp = await createMcpServer()
-  const transport = new StdioServerTransport()
-  await mcp.connect(transport)
+  try {
+    logger.info('Starting MCP server in stdio mode...')
+    // Start MCP over stdio for IDEs (Cursor/Cline)
+    const mcp = await createMcpServer()
+    const transport = new StdioServerTransport()
+    await mcp.connect(transport)
+    logger.info('MCP server connected successfully via stdio')
+  } catch (error) {
+    console.error('❌ Failed to start MCP server in stdio mode:')
+    console.error(error)
+    logger.error('Failed to start MCP server in stdio mode:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
+    process.exit(1)
+  }
 }
 
 async function main() {
