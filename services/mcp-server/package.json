@@ -11,12 +11,13 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc && chmod +x dist/index.js",
     "start": "node dist/index.js",
+    "start:stdio": "node dist/index.js --stdio",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist node_modules/.cache",
-    "mcp-test": "npx @modelcontextprotocol/inspector dist/index.js"
+    "mcp-test": "npx @modelcontextprotocol/inspector dist/index.js -- --stdio"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.5",

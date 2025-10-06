@@ -2,12 +2,27 @@
 
 import 'dotenv/config'
 import { createServer } from './server.js'
+import { createMcpServer } from './server/mcpServer.js'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { logger } from './utils/logger.js'
 import { validateEnvironment } from './config/env.js'
 import { gracefulShutdown } from './utils/shutdown.js'
 
+async function runStdio() {
+  // Start MCP over stdio for IDEs (Cursor/Cline)
+  const mcp = await createMcpServer()
+  const transport = new StdioServerTransport()
+  await mcp.connect(transport)
+}
+
 async function main() {
   try {
+    // If launched with --stdio, run MCP stdio transport and exit
+    if (process.argv.includes('--stdio')) {
+      await runStdio()
+      return
+    }
+
     // Validate environment variables
     const env = validateEnvironment()
     logger.info('Environment validated successfully')

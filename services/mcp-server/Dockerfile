@@ -23,5 +23,5 @@ USER nodejs
 # Expose port
 EXPOSE 18000
 
-# Start the application in development mode
+# Default to HTTP server for container health; allow stdio via npm script
 CMD ["npm", "run", "dev"]
