@@ -7,6 +7,7 @@ import { DatabaseService } from './services/databaseService.js'
 import { registerExtractionRoutes } from './routes/extraction.js'
 import { registerTestLLMRoutes } from './routes/test-llm.js'
 import { registerDemoLLMRoutes } from './routes/demo-llm-analysis.js'
+import { registerContextAssemblyDemo } from './routes/context-assembly-demo.js'
 
 export async function createServer() {
   const server = Fastify({
@@ -34,6 +35,9 @@ export async function createServer() {
   
   // Register demo LLM analysis route
   await registerDemoLLMRoutes(server)
+  
+  // Register context assembly demo route
+  await registerContextAssemblyDemo(server)
 
   // Health check endpoint
   server.get('/health', async (request, reply) => {
