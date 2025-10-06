@@ -6,6 +6,12 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(18000),
   HOST: z.string().default('0.0.0.0'),
   LOG_LEVEL: z.string().default('info'),
+  MCP_SERVER_NAME: z.string().default('Axiom AI MCP Server'),
+  MCP_SERVER_VERSION: z.string().default('1.0.0'),
+  REQUEST_TIMEOUT: z.coerce.number().default(15000),
+  SEARCH_API_URL: z.string().default('http://127.0.0.1:4000'),
+  SECURITY_API_URL: z.string().default('http://127.0.0.1:18002'),
+  OPENAI_API_KEY: z.string().optional(),
   
   // Database (optional for simplified version)
   DATABASE_URL: z.string().optional(),
