@@ -19,6 +19,7 @@ import { registerSearchCodeWithContextTool } from '../tools/searchCodeWithContex
 import { AuthService } from '../services/authService.js'
 import { ContextService } from '../services/contextService.js'
 import { SearchService } from '../services/searchService.js'
+import { WorkspaceDetector } from '../services/workspaceDetector.js'
 import { Pool } from 'pg'
 
 const logger = createModuleLogger('mcp-server')
@@ -129,6 +130,7 @@ export async function createMcpServer(options: McpServerOptions = {}): Promise<M
     
     const contextService = new ContextService()
     const searchService = new SearchService()
+    const workspaceDetector = new WorkspaceDetector(db)
 
     // Create server context
     const serverContext: ServerContext = {
@@ -137,6 +139,7 @@ export async function createMcpServer(options: McpServerOptions = {}): Promise<M
       authService,
       contextService,
       searchService,
+      workspaceDetector,
       db,
     }
 
@@ -177,5 +180,6 @@ export interface ServerContext {
   authService: AuthService | null
   contextService: ContextService
   searchService: SearchService
+  workspaceDetector: WorkspaceDetector
   db: Pool
 }

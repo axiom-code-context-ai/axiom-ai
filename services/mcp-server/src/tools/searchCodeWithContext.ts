@@ -42,24 +42,45 @@ export async function registerSearchCodeWithContextTool(server: McpServer, conte
     (async (args: any) => {
       const { query, workspaceId, tokenBudget = 8000, includeHierarchy = true, includeVectorSearch = true } = args || {}
       try {
+        // Auto-detect workspace if not provided
+        let effectiveWorkspaceId = workspaceId || context.workspaceId
+        
+        if (!effectiveWorkspaceId) {
+          logger.info('No workspace ID provided, auto-detecting from Git repository...')
+          const detectedWorkspace = await context.workspaceDetector.detectAndGetWorkspace()
+          
+          if (detectedWorkspace) {
+            effectiveWorkspaceId = detectedWorkspace.id
+            logger.info('Auto-detected workspace', {
+              id: detectedWorkspace.id,
+              name: detectedWorkspace.name,
+              gitUrl: detectedWorkspace.gitUrl,
+            })
+          } else {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: '⚠️ Could not detect workspace. Please ensure you are in a Git repository, or provide a workspace ID explicitly.',
+                },
+              ],
+              isError: true,
+            }
+          }
+        }
+        
         // Validate input
         const validatedInput = SearchCodeWithContextInputSchema.parse({
           query,
-          workspaceId,
+          workspaceId: effectiveWorkspaceId,
           tokenBudget,
           includeHierarchy,
           includeVectorSearch,
         });
 
-        // Use workspace ID from context if not provided
-        const targetWorkspaceId = validatedInput.workspaceId || context.workspaceId;
-        if (!targetWorkspaceId) {
-          throw new Error('Workspace ID is required for code search');
-        }
-
         logger.info('Performing enterprise context search', {
           query: validatedInput.query,
-          workspaceId: targetWorkspaceId,
+          workspaceId: effectiveWorkspaceId,
           tokenBudget: validatedInput.tokenBudget,
         });
 
@@ -70,7 +91,7 @@ export async function registerSearchCodeWithContextTool(server: McpServer, conte
            WHERE workspace_id = $1 
            ORDER BY analyzed_at DESC NULLS LAST
            LIMIT 1`,
-          [targetWorkspaceId]
+          [effectiveWorkspaceId]
         );
 
         if (repoResult.rows.length === 0) {
@@ -148,7 +169,7 @@ Enterprise context is not yet available. The repository is currently being analy
           try {
             const searchResults = await context.searchService.search({
               query: validatedInput.query,
-              workspaceId: targetWorkspaceId,
+              workspaceId: effectiveWorkspaceId,
               type: 'hybrid',
               options: {
                 limit: 10,
