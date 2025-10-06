@@ -76,38 +76,68 @@ export class WorkspaceDetector {
       // Generate consistent workspace ID from Git URL
       const workspaceId = this.generateWorkspaceId(gitUrl)
 
-      // Check if workspace exists
-      const existing = await this.db.query(
-        `SELECT id, name, git_url, local_path 
-         FROM workspaces 
-         WHERE id = $1 OR git_url = $2 
+      // Check if a repository with this URL already exists
+      const existingRepo = await this.db.query(
+        `SELECT r.id, r.workspace_id, r.url, r.local_path, w.name as workspace_name
+         FROM core.repositories r
+         JOIN core.workspaces w ON w.id = r.workspace_id
+         WHERE r.url = $1 AND r.is_active = true
          LIMIT 1`,
-        [workspaceId, gitUrl]
+        [gitUrl]
       )
 
-      if (existing.rows.length > 0) {
-        const row = existing.rows[0]
-        logger.info('Found existing workspace', { id: row.id, name: row.name })
+      if (existingRepo.rows.length > 0) {
+        const row = existingRepo.rows[0]
+        logger.info('Found existing workspace via repository', { 
+          workspaceId: row.workspace_id, 
+          workspaceName: row.workspace_name,
+          gitUrl: row.url
+        })
         return {
-          id: row.id,
-          name: row.name,
-          gitUrl: row.git_url,
+          id: row.workspace_id,
+          name: row.workspace_name,
+          gitUrl: row.url,
           localPath: row.local_path || localPath,
         }
       }
 
-      // Create new workspace
-      logger.info('Creating new workspace', { id: workspaceId, name, gitUrl })
+      // No existing repository found - create workspace and repository
+      logger.info('Creating new workspace and repository', { id: workspaceId, name, gitUrl })
       
-      await this.db.query(
-        `INSERT INTO workspaces (id, name, git_url, local_path, is_active, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, true, NOW(), NOW())
-         ON CONFLICT (id) DO NOTHING`,
-        [workspaceId, name, gitUrl, localPath]
+      // First, check if workspace exists
+      const existingWorkspace = await this.db.query(
+        `SELECT id, name FROM core.workspaces WHERE id = $1`,
+        [workspaceId]
       )
 
+      let finalWorkspaceId = workspaceId
+
+      if (existingWorkspace.rows.length === 0) {
+        // Create workspace (without git_url column)
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+        await this.db.query(
+          `INSERT INTO core.workspaces (id, enterprise_id, name, slug, description, is_active, created_at, updated_at)
+           VALUES ($1, '00000000-0000-0000-0000-000000000001', $2, $3, $4, true, NOW(), NOW())
+           ON CONFLICT (id) DO NOTHING`,
+          [workspaceId, name, slug, `Auto-detected from ${gitUrl}`]
+        )
+        logger.info('Created new workspace', { id: workspaceId, name, slug })
+      } else {
+        finalWorkspaceId = existingWorkspace.rows[0].id
+        logger.info('Using existing workspace', { id: finalWorkspaceId })
+      }
+
+      // Create repository linked to workspace
+      await this.db.query(
+        `INSERT INTO core.repositories (workspace_id, name, url, branch, auth_type, auth_config, local_path, sync_status, is_active, created_at, updated_at)
+         VALUES ($1, $2, $3, 'main', 'none', '{}', $4, 'pending', true, NOW(), NOW())
+         ON CONFLICT (workspace_id, url) DO NOTHING`,
+        [finalWorkspaceId, name, gitUrl, localPath]
+      )
+      logger.info('Created repository', { workspaceId: finalWorkspaceId, name, gitUrl })
+
       return {
-        id: workspaceId,
+        id: finalWorkspaceId,
         name,
         gitUrl,
         localPath,
@@ -159,4 +189,5 @@ export class WorkspaceDetector {
     this.cachedWorkspace = null
   }
 }
+
 

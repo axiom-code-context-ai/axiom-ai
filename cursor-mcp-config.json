@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "axiom-ai": {
+      "command": "node",
+      "args": [
+        "/Users/saurabh_sharmila_nysa_mac/Desktop/Saurabh_OSS/axiom_ai/services/mcp-server/dist/index.js",
+        "--stdio"
+      ],
+      "env": {
+        "NODE_ENV": "development",
+        "DATABASE_URL": "postgresql://axiom:axiom@localhost:5432/axiom",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_USER": "axiom",
+        "POSTGRES_PASSWORD": "axiom",
+        "POSTGRES_DB": "axiom",
+        "SEARCH_API_URL": "http://localhost:4000",
+        "LOG_LEVEL": "info",
+        "MCP_SERVER_NAME": "axiom-ai",
+        "MCP_SERVER_VERSION": "1.0.0"
+      }
+    }
+  }
+}
+
